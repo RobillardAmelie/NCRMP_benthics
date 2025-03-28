@@ -65,7 +65,7 @@ NCRMP_colony_percent_cover <- function(region, ptitle, file_path, project = "NUL
 
 
   #get weighted data
-  weighted_data <- NCRMP_make_weighted_species_coral_cover_data_DEPRECATED(region = region, sppcvr = sppcvr_dataset, project = project)
+  weighted_data <- NCRMP_make_weighted_species_coral_cover_data(region = region, sppcvr = sppcvr_dataset, project = project)
 
   # unpack list
   list2env(weighted_data, envir = .GlobalEnv)
