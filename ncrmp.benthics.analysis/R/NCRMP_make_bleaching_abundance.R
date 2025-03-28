@@ -77,7 +77,7 @@ NCRMP_make_bleaching_abundance <- function(){
     dplyr::mutate(PROT = case_when(REGION == "FLK" ~ 0, TRUE ~ PROT),
                   ANALYSIS_STRATUM = case_when(
                     REGION == "FLK" | REGION == "SEFCRI" | REGION == "Tortugas" ~ paste(STRAT, "/ PROT =", PROT, sep = " "),
-                    REGION == "GOM" ~ "FGBNMS",
+                    REGION == "FGB" ~ "FGBNMS",
                     REGION == "STX" | REGION == "STTSTJ" | REGION == "PRICO" ~ STRAT)
                   ) %>%
     dplyr::select(REGION, PRIMARY_SAMPLE_UNIT, YEAR, MONTH, DAY, HABITAT_CD, ANALYSIS_STRATUM,

@@ -137,7 +137,7 @@ make_demo_darwincore <- function(dat){
                                            "STTSTJ" = "St. Thomas and St. John, US Virgin Islands",
                                            "STX" = "St. Croix, US Virgin Islands",
                                            "PRICO" = "Puerto Rico",
-                                           "GOM" = "Flower Garden Banks, Gulf of Mexico"))
+                                           "FGB" = "Flower Garden Banks, Gulf of Mexico"))
 
   dups <- dat3$occurrenceID[duplicated(dat3$occurrenceID)]
 

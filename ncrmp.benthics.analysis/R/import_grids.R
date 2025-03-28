@@ -617,7 +617,7 @@ import_grids <- function (region, year){
                                  dplyr::summarize, NTOT=length(GRID_ID))
 
       # add region and grid size fields to match FL
-      strata_ntot$REGION <- "GOM"
+      strata_ntot$REGION <- "FGB"
       strata_ntot$GRID_SIZE <- 50
       strata_ntot$YEAR <- 2018
       # export to csv
