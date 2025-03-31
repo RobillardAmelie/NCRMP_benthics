@@ -24,7 +24,7 @@
 #
 
 # NCRMP Caribbean Benthic analytics team: Groves, Viehman
-# Last update: Feb 2023
+# Last update: Feb 2025
 
 
 ##############################################################################################################################
@@ -53,90 +53,73 @@
 #'
 #'
 
-NCRMP_make_weighted_invert_density_data <- function(inputdata, region, project = "NULL")
-{
+NCRMP_make_weighted_invert_density_data <- function(inputdata, region, project = "NULL") {
 
-  # Define regional groups
+  #### Define Regional Groups ####
   FL <- c("SEFCRI", "FLK", "Tortugas")
   GOM <- "GOM"
   Carib <- c("STTSTJ", "STX", "PRICO")
 
 
-  #### Read in ntot ####
-
-  ntot <- load_NTOT(region = region,
-                    inputdata = inputdata,
-                    project = project)
-
-
-  ntot <- ntot %>%
-    # calculate percentage of NTOT within grid total
-    dplyr::mutate(wh = NTOT/ngrtot) %>%
-    dplyr::mutate(PROT = as.factor(PROT))
+  #### NTOT Data ####
+  ntot <- load_NTOT(region = region, inputdata = inputdata, project = project) %>%
+    dplyr::mutate(
+      wh = NTOT / ngrtot,
+      PROT = as.factor(PROT))
 
 
-  if(region %in% FL)
-  {
-    #### Calculate avdns, svar, n and std at the strata + PROT level ####
-    dens_est <- inputdata %>%
-      dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " ")) %>%
-      # group by analysis level strata
-      dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, PROT) %>% # Modify this line to changes analysis substrate
+  #### Density Calc Helper Function ####
+  density_calculator <- function(data){
+    data <- data %>%
       dplyr::summarise(
-        # calculate mean density
-        avden = mean(Diadema_dens),
-        # calculate stratum variance
-        svar = var(Diadema_dens),
-        # calculate N
+        avden = mean(Diadema_dens), # calculate mean density
+        svar = var(Diadema_dens), # calculate stratum variance
         n = length(Diadema_dens)) %>%
-      # convert 0 for stratum variance so that the sqrt is a small # but not a 0
-      dplyr::mutate(svar = dplyr::case_when(svar == 0 ~ 0.00000001,
-                                            TRUE ~ svar)) %>%
-      dplyr::mutate(std = sqrt(svar))
+      # convert 0 for stratum variance so that the sqrt is a small num but not a 0
+      dplyr::mutate(
+        svar = dplyr::if_else(svar == 0, 1e-8, svar),
+        std = sqrt(svar)
+      )
+  }
 
-    dens_est <- dens_est %>%
-      # Merge ntot with coral_est_spp
-      dplyr::full_join(., ntot) %>%
-      # stratum estimates
+  #### Stratum Est Helper Function ####
+  stratum_estimates <- function(data){
+    data <- data %>%
       dplyr::mutate(whavden = wh * avden,
                     whsvar = wh^2 * svar,
                     whstd = wh * std,
-                    n = tidyr::replace_na(n, 0))
+                    n = tidyr::replace_na(n, 0),
+                    # Add the following to match FL format for non FL regions
+                    PROT = NA,
+                    RUG_CD = NA)
   }
 
 
-  if(region %in% GOM |
-     region %in% Carib)
-  {
+  if(region %in% FL) {
+
+    #### Calculate avdns, svar, n and std at the strata + PROT level ####
+    dens_est <- inputdata %>%
+      dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " ")) %>%
+      dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, PROT) %>% # group by analysis level strata
+      density_calculator() %>%
+      dplyr::full_join(., ntot) %>% # Merge ntot with coral_est_spp
+      # stratum estimates
+      stratum_estimates
+  }
+
+
+  if(region %in% GOM | region %in% Carib) {
 
     #### Calculate avdns, svar, n and std at the strata ####
     dens_est <- inputdata %>%
       dplyr::mutate(ANALYSIS_STRATUM = STRAT) %>%
       # group by analysis level strata
       dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT) %>% # Modify this line to change analysis stratum
-      dplyr::summarise(
-        # compute average density
-        avden = mean(Diadema_dens),
-        # compute stratum variance
-        svar = var(Diadema_dens),
-        # calculate N
-        n = length(Diadema_dens)) %>%
-      # convert 0 for stratum variance so that the sqrt is a small # but not a 0
-      dplyr::mutate(svar = dplyr::case_when(svar == 0 ~ 0.00000001,
-                                            TRUE ~ svar)) %>%
-      dplyr::mutate(std = sqrt(svar))
-
-    dens_est <- dens_est %>%
+      density_calculator() %>%
       # Merge ntot with coral_est_spp
       dplyr::full_join(., ntot) %>%
       # stratum estimates
-      dplyr::mutate(whavden = wh * avden,
-                    whsvar = wh^2 * svar,
-                    whstd = wh * std,
-                    n = tidyr::replace_na(n, 0),
-                    # Add the following to match FL format
-                    PROT = NA,
-                    RUG_CD = NA)
+      stratum_estimates()
   }
 
   # Reformat output
@@ -156,18 +139,10 @@ NCRMP_make_weighted_invert_density_data <- function(inputdata, region, project =
                      std = sqrt(var),
                      ngrtot = sum(NTOT) )
 
-
-  ################
-  # Export
-  ################
-
-  # Create list to export
+  ####Export####
   output <- list(
     "invert_strata" = invert_strata,
     "Domain_est" = Domain_est
 
   )
-
-
-
 }

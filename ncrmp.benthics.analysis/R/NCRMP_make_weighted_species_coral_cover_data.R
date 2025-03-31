@@ -22,7 +22,7 @@
 #
 
 # NCRMP Caribbean Benthic analytics team: Groves, Viehman, Williams
-# Last update: Nov 2023
+# Last update: Mar 2025
 
 
 ##############################################################################################################################
@@ -50,33 +50,29 @@
 #'
 #'
 
-
-# function to Calculate weights based on the most recent sampling grid
 NCRMP_make_weighted_species_coral_cover_data <- function(region, sppcvr, project = "NULL") {
-
-
-  ntot <- load_NTOT(region = region,
-                    inputdata = sppcvr,
-                    project = project)
-
+  
+  ####Load NTOT  ####
+  ntot <- load_NTOT(region = region, inputdata = sppcvr,project = project)
+  
+  
+    ####Filter Cover Cats####
+    filter_cover_cats <- function(data){
+      data %>%
+        dplyr::filter(cover_group == "HARD CORALS") %>%
+        dplyr::filter(!COVER_CAT_NAME %in% c("Solenastrea spp", "Siderastrea spp", "Scolymia spp", 
+                                             "Agaricia spp", "Diploria spp", "Orbicella spp", 
+                                             "Madracis spp", "Other coral", "Isophyllia spp", 
+                                             "Porites spp", "Meandrina spp", "Pseudodiploria spp", 
+                                             "Orbicella annularis species complex", "Tubastraea coccinea"))
+    }
+  
+    #Filtered sppcvr dataset (reduce number of calls to above function)
+    filtered_sppcvr <- filter_cover_cats(sppcvr)
+    
   ## Calculate weighted means and cv
-  # strata_means
-  strata_means <- sppcvr %>%
-    dplyr::filter(cover_group == "HARD CORALS") %>%
-    dplyr::filter(COVER_CAT_NAME != "Solenastrea spp",
-                  COVER_CAT_NAME != "Siderastrea spp",
-                  COVER_CAT_NAME != "Scolymia spp",
-                  COVER_CAT_NAME != "Agaricia spp",
-                  COVER_CAT_NAME != "Diploria spp",
-                  COVER_CAT_NAME != "Orbicella spp",
-                  COVER_CAT_NAME != "Madracis spp",
-                  COVER_CAT_NAME != "Other coral",
-                  COVER_CAT_NAME != "Isophyllia spp",
-                  COVER_CAT_NAME != "Porites spp",
-                  COVER_CAT_NAME != "Meandrina spp",
-                  COVER_CAT_NAME != "Pseudodiploria spp",
-                  COVER_CAT_NAME != "Orbicella annularis species complex",
-                  COVER_CAT_NAME != "Tubastraea coccinea") %>%
+  ####strata_means####
+  strata_means <- filtered_sppcvr %>%
     dplyr::mutate(SPECIES_NAME = COVER_CAT_NAME,
                   cvr = Percent_Cvr) %>%
     dplyr::group_by(REGION, YEAR, SPECIES_NAME, ANALYSIS_STRATUM) %>%  # removed  DEPTH_STRAT, b/c it's in STRAT_ANALYSIS
@@ -96,9 +92,9 @@ NCRMP_make_weighted_species_coral_cover_data <- function(region, sppcvr, project
                   SE = sqrt(Var),
                   CV_perc = (SE/mean)*100,
                   CV = (SE/mean))
-
-
-  # region/population means
+  
+  
+  ####region/population means####
   region_means <- strata_means %>%
     dplyr::left_join(ntot) %>%
     dplyr::mutate(wh_mean = wh*mean,
@@ -116,38 +112,25 @@ NCRMP_make_weighted_species_coral_cover_data <- function(region, sppcvr, project
                   DEPTH_STRAT = "ALL_DEPTHS",
                   HABITAT_CD = "ALL_HABS") %>%  #add svar variable
     dplyr::select(REGION, YEAR, STRAT_ANALYSIS, SPECIES_NAME, avCvr, Var, SE, CV_perc, CV, n_sites, HABITAT_CD, DEPTH_STRAT)
-
-  # Calculate n sites present for each species
-  strata_presence <- sppcvr %>%
-    dplyr::filter(cover_group == "HARD CORALS") %>%
-    dplyr::filter(COVER_CAT_NAME != "Solenastrea spp",
-                  COVER_CAT_NAME != "Siderastrea spp",
-                  COVER_CAT_NAME != "Scolymia spp",
-                  COVER_CAT_NAME != "Agaricia spp",
-                  COVER_CAT_NAME != "Orbicella spp",
-                  COVER_CAT_NAME != "Madracis spp",
-                  COVER_CAT_NAME != "Other coral",
-                  COVER_CAT_NAME != "Isophyllia spp",
-                  COVER_CAT_NAME != "Porites spp",
-                  COVER_CAT_NAME != "Meandrina spp",
-                  COVER_CAT_NAME != "Pseudodiploria spp",
-                  COVER_CAT_NAME != "Orbicella annularis species complex",
-                  COVER_CAT_NAME != "Tubastraea coccinea") %>%
+  
+  ####Strata Pres: Calculate n sites present for each species####
+  strata_presence <- filtered_sppcvr %>%
     dplyr::mutate(SPECIES_NAME = COVER_CAT_NAME,
                   cvr = Percent_Cvr) %>%
     # remove sites where species not present
     dplyr::filter(cvr > 0) %>%
     dplyr::group_by(REGION, YEAR, SPECIES_NAME, ANALYSIS_STRATUM) %>%
-    dplyr::summarize(n_sites = length(cvr),
-                     .groups = "keep") %>%
+    dplyr::summarize(n_sites = n(), .groups = "keep")
     dplyr::ungroup()
-
+  
+  ####Region Presence####
   region_presence <- strata_presence %>%
     dplyr::group_by(REGION, YEAR, SPECIES_NAME) %>%
     dplyr::summarize(n_sites_present = sum(n_sites),
                      .groups = "keep") %>%
     dplyr::ungroup()
-
+  
+  ####Region Means####
   region_means <- dplyr::left_join(region_means, region_presence) %>%
     dplyr::select(REGION, YEAR, STRAT_ANALYSIS, SPECIES_NAME, avCvr, Var, SE, CV_perc, CV, n_sites_present, n_sites, HABITAT_CD, DEPTH_STRAT) %>%
     # drop rows with NA as species code
@@ -155,20 +138,12 @@ NCRMP_make_weighted_species_coral_cover_data <- function(region, sppcvr, project
     # exclude rows with -spp in name
     dplyr::filter(., !grepl('spp', SPECIES_NAME)) %>%
     dplyr::mutate(n_sites_present = tidyr::replace_na(n_sites_present, 0))
-
-
-
-
-  ################
-  # Export
-  ################
-
-
-  # Create list to export
+  
+  ####Export####
   output <- list(
     "region_means" = region_means,
     "strata_means" = strata_means)
-
+  
   return(output)
-
+  
 }

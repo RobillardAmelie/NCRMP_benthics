@@ -32,7 +32,7 @@
 #' Re-formats analysis ready benthic cover (LPI) data into Darwin Core standards.
 #'
 #' @param dat A dataframe of analysis ready LPI data to be converted into Darwin Core.
-#' @param region A string indicating the region. Options are: "SEFCRI", "FLK", "Tortugas", "STX", "STTSTJ", "PRICO", and "GOM".
+#' @param region A string indicating the region. Options are: "SEFCRI", "FLK", "Tortugas", "STX", "STTSTJ", "PRICO", and "FGB".
 #' @param year A numeric indicating the year.
 #'
 #' @return A list of multiple dataframes including re-formatted data and percent cover by species and site.
@@ -55,7 +55,7 @@ make_cover_darwincore <- function(dat, region, year){
       dplyr::filter(SUB_REGION_NAME != "Marquesas",
                     SUB_REGION_NAME != "Marquesas-Tortugas Trans") %>%
       dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " "))
-  } else if(region == "GOM"){
+  } else if(region == "FGB"){
     dat <- dat %>%
       dplyr::mutate(ANALYSIS_STRATUM = "FGBNMS")
   } else{
@@ -204,7 +204,7 @@ make_cover_darwincore <- function(dat, region, year){
                                               REGION == "Tortugas" ~ "Dry Tortugas, Florida",
                                               REGION == "STTSTJ" ~ "St. Thomas & St. John, US Virgin Islands",
                                               REGION == "STX" ~ "St. Croix, US Virgin Islands",
-                                              REGION == "GOM" ~ "Flower Garden Banks, Gulf of Mexico",
+                                              REGION == "FGB" ~ "Flower Garden Banks, Gulf of Mexico",
                                               REGION == "PRICO" ~ "Puerto Rico")) %>%
     # add columns needed for archiving with OBIS
     dplyr::mutate(basisOfRecord = 'HumanObservation',

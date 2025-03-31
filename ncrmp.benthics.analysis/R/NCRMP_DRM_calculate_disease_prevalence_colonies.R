@@ -21,7 +21,7 @@
 #
 
 # NCRMP Caribbean Benthic analytics team: Groves, Viehman, Williams
-# Last update: Feb 2023
+# Last update: Feb 2025
 
 
 ##############################################################################################################################
@@ -40,7 +40,7 @@
 #'
 #'
 #' @param project A string indicating the project, NCRMP, MIR, or NCRMP and DRM combined ("NCRMP_DRM").
-#' @param region A string indicating the region. Options are: "SEFCRI", "FLK", "Tortugas", "STX", "STTSTJ", "PRICO", and "GOM".
+#' @param region A string indicating the region. Options are: "SEFCRI", "FLK", "Tortugas", "STX", "STTSTJ", "PRICO", and "FGB".
 #' @param species_filter An optional concatenated string indicating whether to filter to a subset of species
 #' @return A list of dataframes including 1) bleaching and disease prevalence by species
 #' and site, 2) bleaching and disease prevalence by site, 3) disease prevalence by
@@ -54,149 +54,116 @@
 
 NCRMP_DRM_calculate_disease_prevalence_colonies <- function(project, region, species_filter = "NULL"){
 
-
+  ####prep data####
   # Load data
-  tmp <- load_NCRMP_DRM_demo_data(project = project,
-                                  region = region,
-                                  species_filter = species_filter)
+  tmp <- load_NCRMP_DRM_demo_data(project = project, region = region, species_filter = species_filter)
+  #unpack list
+  list2env(tmp, envir = environment())
 
-  for(k in 1:length(tmp))assign(names(tmp)[k], tmp[[k]])
+  ####Helper Function: clean data, no disease na####
+  FL_dis_NA <- function(data){
+    data %>% dplyr::filter(N == 1,
+                           DISEASE != "N/A",
+                           JUV == 0,
+                           SUB_REGION_NAME != "Marquesas",
+                           SUB_REGION_NAME != "Marquesas-Tortugas Trans")
+  }
+
+ ####Helper Function: Mutate Formatting
+  mutate_formatting <- function(data){
+    data %>%
+      dplyr::mutate(PRIMARY_SAMPLE_UNIT = as.factor(PRIMARY_SAMPLE_UNIT),
+                    LAT_DEGREES = sprintf("%0.4f", as.numeric(LAT_DEGREES)), 
+                    LON_DEGREES = sprintf("%0.4f", as.numeric(LON_DEGREES)))
+  }
+
+
+  ####Helper Function: process data####
+  process_data <- function(data, include_PL = FALSE) {
+    
+    bleach_conditions <- if (include_PL == TRUE) {
+      c("P", "T", "B", "PB", "PL")  
+    } else {
+      c("P", "T", "B", "PB")  
+    }
+    
+    data %>%
+      dplyr::mutate(PROT = as.factor(PROT),
+                    DISEASE = as.integer(DISEASE %in% c("P", "F", "S")),
+                    BLEACH = as.integer(BLEACH_CONDITION %in% bleach_conditions)) %>%
+      #call mutate formatting helper function
+      mutate_formatting()
+  }
+
+  
+  ####Helper Function: Sum ble/dis####
+  sum_disease_bleaching <- function(data){
+    data%>% dplyr::summarise(Total_dis = sum(DISEASE),
+                       Total_ble = sum(BLEACH),
+                       Total_col = sum(N),
+                       DIS_PREV = (Total_dis/Total_col)*100,
+                       BLE_PREV = (Total_ble/Total_col)*100, .groups = "keep")
+  }
+
+  ####Helper Function: mean ble/dis####
+  mean_disease_bleaching <- function(data){
+    data %>% dplyr::summarise(Total_dis = mean(Total_dis),
+                       Total_ble = mean(Total_ble),
+                       Total_col = mean(Total_col),
+                       DIS_PREV = mean(DIS_PREV),
+                       BLE_PREV = mean(BLE_PREV), .groups = "keep")
+  }
+  ####Helper Function: Format ble/dis####
+  format_dis_ble_prev <- function(data) {
+    data %>% dplyr::mutate(DIS_PREV = as.numeric(sprintf("%0.1f", DIS_PREV)),
+                          BLE_PREV = as.numeric(sprintf("%0.1f", BLE_PREV)))
+  }
 
 
   # Calulate site level disease prevalence
 
-  if(project == "NCRMP_DRM" ||
-     project == "NCRMP" && region == "SEFCRI" ||
-     project == "NCRMP" && region == "Tortugas") {
+  if (project == "NCRMP_DRM" || (project == "NCRMP" && (region == "SEFCRI" || region == "Tortugas"))) {
 
     dat1_1stage <- dat_1stage %>%
-      dplyr::filter(N == 1,
-                    DISEASE != "N/A",
-                    JUV == 0,
-                    SUB_REGION_NAME != "Marquesas",
-                    SUB_REGION_NAME != "Marquesas-Tortugas Trans") %>%
+      FL_dis_NA() %>%
       dplyr::filter(!(is.na(DISEASE))) %>%
-       dplyr::mutate(PROT = as.factor(PROT),
-                     LAT_DEGREES = sprintf("%0.4f", LAT_DEGREES),
-                     LON_DEGREES = sprintf("%0.4f", LON_DEGREES),
-                     PRIMARY_SAMPLE_UNIT = as.factor(PRIMARY_SAMPLE_UNIT),
-                    DISEASE = dplyr::case_when(DISEASE == "A" ~ 0,
-                                               DISEASE == "P" ~ 1,
-                                               DISEASE == "F" ~ 1,
-                                               DISEASE == "S" ~ 1,TRUE ~ 0),
-                    BLEACH = dplyr::case_when(BLEACH_CONDITION == "N" ~ 0,
-                                              BLEACH_CONDITION == "P" ~ 1,
-                                              BLEACH_CONDITION == "B" ~ 1,
-                                              BLEACH_CONDITION == "T" ~ 1,
-                                              BLEACH_CONDITION == "PB" ~ 1, TRUE ~ 0)) %>%
+      mutate_formatting() %>%
+      mutate(DATE = paste(MONTH, DAY, YEAR, sep = "/")) %>%
+      process_data(include_PL = FALSE) %>%
       dplyr::group_by(SURVEY, REGION, YEAR, SUB_REGION_NAME, PRIMARY_SAMPLE_UNIT, LAT_DEGREES, LON_DEGREES, STRAT, HABITAT_CD, PROT) %>%
-      dplyr::summarise(Total_dis = sum(DISEASE),
-                       Total_ble = sum(BLEACH),
-                       Total_col = sum(N),
-                       DIS_PREV = (Total_dis/Total_col)*100,
-                       BLE_PREV = (Total_ble/Total_col)*100, .groups = "keep") %>%
-      dplyr::mutate(DIS_PREV = as.numeric(sprintf("%0.1f", DIS_PREV)),
-                    BLE_PREV = as.numeric(sprintf("%0.1f", BLE_PREV)))
+      sum_disease_bleaching() %>%
+      format_dis_ble_prev()
 
 
     dis_species_1stage <- dat_1stage %>%
-      dplyr::filter(N == 1,
-                    DISEASE != "N/A",
-                    JUV == 0,
-                    SUB_REGION_NAME != "Marquesas",
-                    SUB_REGION_NAME != "Marquesas-Tortugas Trans") %>%
+      FL_dis_NA() %>%
       dplyr::filter(!(is.na(DISEASE))) %>%
-      dplyr::mutate(PROT = as.factor(PROT),
-                    LAT_DEGREES = sprintf("%0.4f", LAT_DEGREES),
-                    LON_DEGREES = sprintf("%0.4f", LON_DEGREES),
-                    PRIMARY_SAMPLE_UNIT = as.factor(PRIMARY_SAMPLE_UNIT),
-                    DISEASE = dplyr::case_when(DISEASE == "A" ~ 0,
-                                               DISEASE == "P" ~ 1,
-                                               DISEASE == "F" ~ 1,
-                                               DISEASE == "S" ~ 1,TRUE ~ 0),
-                    BLEACH = dplyr::case_when(BLEACH_CONDITION == "N" ~ 0,
-                                              BLEACH_CONDITION == "P" ~ 1,
-                                              BLEACH_CONDITION == "B" ~ 1,
-                                              BLEACH_CONDITION == "T" ~ 1,
-                                              BLEACH_CONDITION == "PB" ~ 1, TRUE ~ 0)) %>%
+      mutate_formatting() %>%
+      mutate(DATE = paste(MONTH, DAY, YEAR, sep = "/")) %>%
+      process_data(include_PL = FALSE) %>%
       dplyr::group_by(SURVEY, REGION, YEAR, SUB_REGION_NAME, PRIMARY_SAMPLE_UNIT, LAT_DEGREES, LON_DEGREES, STRAT, HABITAT_CD, PROT, SPECIES_CD) %>%
-      dplyr::summarise(Total_dis = sum(DISEASE),
-                       Total_ble = sum(BLEACH),
-                       Total_col = sum(N),
-                       DIS_PREV = (Total_dis/Total_col)*100,
-                       BLE_PREV = (Total_ble/Total_col)*100, .groups = "keep") %>%
-      dplyr::mutate(DIS_PREV = as.numeric(sprintf("%0.1f", DIS_PREV)),
-                    BLE_PREV = as.numeric(sprintf("%0.1f", BLE_PREV)))
+      sum_disease_bleaching() %>%
+      format_dis_ble_prev()
 
 
     dat1_2stage <- dat_2stage %>%
-      dplyr::filter(N == 1,
-                    DISEASE != "N/A",
-                    JUV == 0,
-                    SUB_REGION_NAME != "Marquesas",
-                    SUB_REGION_NAME != "Marquesas-Tortugas Trans") %>%
-      dplyr::mutate(PROT = as.factor(PROT),
-                    LAT_DEGREES = sprintf("%0.4f", LAT_DEGREES),
-                    LON_DEGREES = sprintf("%0.4f", LON_DEGREES),
-                    PRIMARY_SAMPLE_UNIT = as.factor(PRIMARY_SAMPLE_UNIT),
-                    DISEASE = dplyr::case_when(DISEASE == "A" ~ 0,
-                                               DISEASE == "P" ~ 1,
-                                               DISEASE == "F" ~ 1,
-                                               DISEASE == "S" ~ 1,TRUE ~ 0),
-                    BLEACH = dplyr::case_when(BLEACH_CONDITION == "N" ~ 0,
-                                              BLEACH_CONDITION == "P" ~ 1,
-                                              BLEACH_CONDITION == "T" ~ 1,
-                                              BLEACH_CONDITION == "B" ~ 1,
-                                              BLEACH_CONDITION == "PB" ~ 1,
-                                              BLEACH_CONDITION == "PL" ~ 1, TRUE ~ 0)) %>%
+      FL_dis_NA() %>%
+      process_data(include_PL = TRUE) %>%
       dplyr::group_by(SURVEY, REGION, YEAR, SUB_REGION_NAME, PRIMARY_SAMPLE_UNIT, STATION_NR, LAT_DEGREES, LON_DEGREES, STRAT, HABITAT_CD, PROT) %>%
-      dplyr::summarise(Total_dis = sum(DISEASE),
-                       Total_ble = sum(BLEACH),
-                       Total_col = sum(N),
-                       DIS_PREV = (Total_dis/Total_col)*100,
-                       BLE_PREV = (Total_ble/Total_col)*100, .groups = "keep") %>%
+      sum_disease_bleaching() %>%
       dplyr::group_by(SURVEY, REGION, YEAR, SUB_REGION_NAME, PRIMARY_SAMPLE_UNIT, LAT_DEGREES, LON_DEGREES, STRAT, HABITAT_CD, PROT) %>%
-      dplyr::summarise(Total_dis = mean(Total_dis),
-                       Total_ble = mean(Total_ble),
-                       Total_col = mean(Total_col),
-                       DIS_PREV = mean(DIS_PREV),
-                       BLE_PREV = mean(BLE_PREV), .groups = "keep") %>%
-      dplyr::mutate(DIS_PREV = as.numeric(sprintf("%0.1f", DIS_PREV)),
-                    BLE_PREV = as.numeric(sprintf("%0.1f", BLE_PREV)))
+      mean_disease_bleaching() %>%
+      format_dis_ble_prev()
 
     dis_species_2stage <- dat_2stage %>%
-      dplyr::filter(N == 1,
-                    DISEASE != "N/A",
-                    JUV == 0,
-                    SUB_REGION_NAME != "Marquesas",
-                    SUB_REGION_NAME != "Marquesas-Tortugas Trans") %>%
-      dplyr::mutate(PROT = as.factor(PROT),
-                    LAT_DEGREES = sprintf("%0.4f", LAT_DEGREES),
-                    LON_DEGREES = sprintf("%0.4f", LON_DEGREES),
-                    PRIMARY_SAMPLE_UNIT = as.factor(PRIMARY_SAMPLE_UNIT),
-                    DISEASE = dplyr::case_when(DISEASE == "A" ~ 0,
-                                               DISEASE == "P" ~ 1,
-                                               DISEASE == "F" ~ 1,
-                                               DISEASE == "S" ~ 1,TRUE ~ 0),
-                    BLEACH = dplyr::case_when(BLEACH_CONDITION == "N" ~ 0,
-                                              BLEACH_CONDITION == "P" ~ 1,
-                                              BLEACH_CONDITION == "B" ~ 1,
-                                              BLEACH_CONDITION == "T" ~ 1,
-                                              BLEACH_CONDITION == "PB" ~ 1, TRUE ~ 0)) %>%
+      FL_dis_NA() %>%
+      mutate_formatting() %>%
+      process_data(include_PL = FALSE) %>%
       dplyr::group_by(SURVEY, REGION, YEAR, SUB_REGION_NAME, PRIMARY_SAMPLE_UNIT, STATION_NR, LAT_DEGREES, LON_DEGREES, STRAT, HABITAT_CD, PROT, SPECIES_CD) %>%
-      dplyr::summarise(Total_dis = sum(DISEASE),
-                       Total_ble = sum(BLEACH),
-                       Total_col = sum(N),
-                       DIS_PREV = (Total_dis/Total_col)*100,
-                       BLE_PREV = (Total_ble/Total_col)*100, .groups = "keep") %>%
+      sum_disease_bleaching() %>%
       dplyr::group_by(SURVEY, REGION, YEAR, SUB_REGION_NAME, PRIMARY_SAMPLE_UNIT, LAT_DEGREES, LON_DEGREES, STRAT, HABITAT_CD, PROT, SPECIES_CD) %>%
-      dplyr::summarise(Total_dis = mean(Total_dis),
-                       Total_ble = mean(Total_ble),
-                       Total_col = mean(Total_col),
-                       DIS_PREV = mean(DIS_PREV),
-                       BLE_PREV = mean(BLE_PREV), .groups = "keep") %>%
-      dplyr::mutate(DIS_PREV = as.numeric(sprintf("%0.1f", DIS_PREV)),
-                    BLE_PREV = as.numeric(sprintf("%0.1f", BLE_PREV)))
+      mean_disease_bleaching() %>%
+      format_dis_ble_prev()
 
     disease_prev_species <-dplyr::bind_rows(dis_species_1stage, dis_species_2stage)
 
@@ -204,70 +171,34 @@ NCRMP_DRM_calculate_disease_prevalence_colonies <- function(project, region, spe
 
   } else {
 
+
+
     disease_prev_site <- dat_1stage %>%
       dplyr::filter(N == 1,
                     #DISEASE != "N/A", # keep NA's because disease info wasn't consistently collected in 2013
                     JUV == 0) %>%
-      dplyr::mutate(PROT = as.factor(PROT),
-                    DISEASE = dplyr::case_when(DISEASE == "A" ~ 0,
-                                               DISEASE == "P" ~ 1,
-                                               DISEASE == "F" ~ 1,
-                                               DISEASE == "S" ~ 1,TRUE ~ 0),
-                    BLEACH = dplyr::case_when(BLEACH_CONDITION == "N" ~ 0,
-                                              BLEACH_CONDITION == "P" ~ 1,
-                                              BLEACH_CONDITION == "B" ~ 1,
-                                              BLEACH_CONDITION == "T" ~ 1,
-                                              BLEACH_CONDITION == "PB" ~ 1, TRUE ~ 0)) %>%
+      process_data(include_PL = FALSE) %>%
       dplyr::group_by(SURVEY, REGION, YEAR, SUB_REGION_NAME, PRIMARY_SAMPLE_UNIT, LAT_DEGREES, LON_DEGREES, STRAT, HABITAT_CD, PROT) %>%
-      dplyr::summarise(Total_dis = sum(DISEASE),
-                       Total_ble = sum(BLEACH),
-                       Total_col = sum(N),
-                       DIS_PREV = (Total_dis/Total_col)*100,
-                       BLE_PREV = (Total_ble/Total_col)*100, .groups = "keep") %>%
-      dplyr::mutate(DIS_PREV = as.numeric(sprintf("%0.1f", DIS_PREV)),
-                    BLE_PREV = as.numeric(sprintf("%0.1f", BLE_PREV)))
+      sum_disease_bleaching() %>%
+      format_dis_ble_prev()
 
     disease_prev_species <- dat_1stage %>%
       dplyr::filter(N == 1,
                     #DISEASE != "N/A", # keep NA's because disease info wasn't consistently collected in 2013
                     JUV == 0) %>%
-      dplyr::mutate(PROT = as.factor(PROT),
-                    DISEASE = dplyr::case_when(DISEASE == "A" ~ 0,
-                                               DISEASE == "P" ~ 1,
-                                               DISEASE == "F" ~ 1,
-                                               DISEASE == "S" ~ 1,TRUE ~ 0),
-                    BLEACH = dplyr::case_when(BLEACH_CONDITION == "N" ~ 0,
-                                              BLEACH_CONDITION == "P" ~ 1,
-                                              BLEACH_CONDITION == "B" ~ 1,
-                                              BLEACH_CONDITION == "T" ~ 1,
-                                              BLEACH_CONDITION == "PB" ~ 1, TRUE ~ 0)) %>%
+      process_data(include_PL = FALSE) %>%
       dplyr::group_by(SURVEY, REGION, YEAR, SUB_REGION_NAME, PRIMARY_SAMPLE_UNIT, LAT_DEGREES, LON_DEGREES, STRAT, HABITAT_CD, PROT, SPECIES_CD) %>%
-      dplyr::summarise(Total_dis = sum(DISEASE),
-                       Total_ble = sum(BLEACH),
-                       Total_col = sum(N),
-                       DIS_PREV = (Total_dis/Total_col)*100,
-                       BLE_PREV = (Total_ble/Total_col)*100, .groups = "keep") %>%
-      dplyr::mutate(DIS_PREV = as.numeric(sprintf("%0.1f", DIS_PREV)),
-                    BLE_PREV = as.numeric(sprintf("%0.1f", BLE_PREV)))
+      sum_disease_bleaching() %>%
+      format_dis_ble_prev()
 
   }
 
   # Run through the weighting function
-
   tmp  <- NCRMP_make_weighted_demo_data(project, inputdata = disease_prev_site, region, datatype = "disease")
-
   # unpack list
-  for(k in 1:length(tmp))assign(names(tmp)[k], tmp[[k]])
+  list2env(tmp, envir = environment())
 
-
-
-
-
-  ################
-  # Export
-  ################
-
-  # Create list to export
+  ####Export####
   output <- list(
     'dis_ble_prev_species' = disease_prev_species,
     "dis_ble_prev_site" = disease_prev_site,
@@ -276,10 +207,4 @@ NCRMP_DRM_calculate_disease_prevalence_colonies <- function(project, region, spe
     "Domain_est" = Domain_est)
 
   return(output)
-
-
-
-
-
-
 }
