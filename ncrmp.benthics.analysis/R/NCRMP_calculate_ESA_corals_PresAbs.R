@@ -137,17 +137,17 @@ NCRMP_calculate_ESA_corals_PresAbs <- function() {
     )
   
   
-  #Combine Carib and GOM
-    Carib_GOM <- dplyr::bind_rows(usvi_datasets, prico_datasets, fgb_datasets) %>%
+  #Combine Carib and FGB
+    Carib_FGB <- dplyr::bind_rows(usvi_datasets, prico_datasets, fgb_datasets) %>%
     # Remove METERS_COMPLETED as it is missing from the FL data
     dplyr::select(-METERS_COMPLETED) %>%
     # Combine and change to factor - there are letters in the FGBNMS MAPGRID NRs
     dplyr::mutate(MAPGRID_NR = as.factor(MAPGRID_NR))
   
   
-  ####Combine FL, Carib, and GOM####
+  ####Combine FL, Carib, and FGB####
   
-  dat <- dplyr::bind_rows(FL, Carib_GOM)
+  dat <- dplyr::bind_rows(FL, Carib_FGB)
   
   ####Mutate Species Function###
   mutate_species <- function(data){
