@@ -14,7 +14,7 @@
 
 # Current weighting scheme:
 # STRAT + PROT (FL)
-# STRAT (Carib/GOM)
+# STRAT (Carib/FGB)
 
 # CallS:
 # analysis ready data
@@ -44,7 +44,7 @@
 #'
 #'
 #' @param inputdata A dataframe of site level invertebrate density.
-#' @param region A string indicating the region. Options are: "SEFCRI", "FLK", "Tortugas", "STX", "STTSTJ", "PRICO", and "GOM".
+#' @param region A string indicating the region. Options are: "SEFCRI", "FLK", "Tortugas", "STX", "STTSTJ", "PRICO", and "FGB".
 #' @param project A string indicating the project: "NCRMP" or "MIR". Default is NCRMP.
 #' @return A list of dataframes, including a dataframe of strata means of invertebrate
 #' and a dataframe of weighted regional estimates of invertebrate density, for specified region.
@@ -57,7 +57,7 @@ NCRMP_make_weighted_invert_density_data <- function(inputdata, region, project =
 
   #### Define Regional Groups ####
   FL <- c("SEFCRI", "FLK", "Tortugas")
-  GOM <- "GOM"
+  FGB <- "FGB"
   Carib <- c("STTSTJ", "STX", "PRICO")
 
 
@@ -108,7 +108,7 @@ NCRMP_make_weighted_invert_density_data <- function(inputdata, region, project =
   }
 
 
-  if(region %in% GOM | region %in% Carib) {
+  if(region %in% FGB | region %in% Carib) {
 
     #### Calculate avdns, svar, n and std at the strata ####
     dens_est <- inputdata %>%
