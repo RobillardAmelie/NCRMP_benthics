@@ -53,13 +53,16 @@
 #'
 NCRMP_make_weighted_LPI_data <- function(inputdata, region, project = "NULL") {
   
+  
   # Define regional groups
   FL <- c("SEFCRI", "FLK", "Tortugas")
-  GOM <- "GOM"
+  FGB <- "FGB"
   Carib <- c("STTSTJ", "STX", "PRICO")
   
   #####Load NTOT data####
   ntot <- load_NTOT(region = region, inputdata = inputdata, project = project)
+  
+  
   
   #####processing cover data (used by both FL and non-FL regions)####
   process_cover_data <- function(data, region_is_FL = TRUE) {
@@ -104,10 +107,15 @@ NCRMP_make_weighted_LPI_data <- function(inputdata, region, project = "NULL") {
   if (region %in% FL) {
     cover_est <- process_cover_data(inputdata, region_is_FL = TRUE)
   }
-  #Process cover data for GOM and Caribbean regions
-  else if (region %in% GOM | region %in% Carib) {
+  
+  
+  
+  
+  #Process cover data for FGB and Caribbean regions
+  if (region %in% FGB | region %in% Carib) {
     cover_est <- process_cover_data(inputdata, region_is_FL = FALSE)
   }
+
   
   #####Create strata means####
   cover_strata <- cover_est %>%
