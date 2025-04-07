@@ -38,7 +38,7 @@
 #'
 #'
 #'
-#' @param region A string indicating the region. Options are: "SEFCRI", "FLK", "Tortugas", "STX", "STTSTJ", "PRICO", and "GOM".
+#' @param region A string indicating the region. Options are: "SEFCRI", "FLK", "Tortugas", "STX", "STTSTJ", "PRICO", and "FGB".
 #' @param sppcvr A dataframe of site and species level percent cover data.
 #' @param project A string indicating the project: "NCRMP" or "MIR".
 #' @return A list of dataframes, including a dataframe of strata mean cover by coral species
