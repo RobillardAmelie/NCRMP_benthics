@@ -1,7 +1,7 @@
 
 **For information on how to use this package, please visit:** https://mse-nccos-noaa.github.io/NCRMP_benthics/ 
 
-# Introduction 🪸
+# Introduction 
 
 The ncrmp.benthic.analysis package is designed to use benthic data collected from the Atlantic regions of the National Coral Reef Monitoring Program (NCRMP) to complete the following:
 
