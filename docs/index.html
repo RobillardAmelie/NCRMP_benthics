@@ -1,0 +1,1847 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Sarah Groves, Bethany Williams, Shay Viehman" />
+
+<meta name="date" content="2025-03-28" />
+
+<title>NCRMP Benthics statistical package in R</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">NCRMP Benthics statistical package in
+R</h1>
+<h4 class="author">Sarah Groves, Bethany Williams, Shay Viehman</h4>
+<h4 class="date">2025-03-28</h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#description" id="toc-description">Description</a>
+<ul>
+<li><a href="#installation" id="toc-installation">Installation</a></li>
+</ul></li>
+<li><a href="#to-use-this-package-as-a-data-repository" id="toc-to-use-this-package-as-a-data-repository">To use this package as
+a data repository</a>
+<ul>
+<li><a href="#accessing-data" id="toc-accessing-data">Accessing
+Data</a></li>
+<li><a href="#datasets" id="toc-datasets">Datasets</a></li>
+</ul></li>
+<li><a href="#to-use-the-functions-in-this-package" id="toc-to-use-the-functions-in-this-package">To use the functions in
+this package</a></li>
+<li><a href="#functions-for-specific-regions" id="toc-functions-for-specific-regions">Functions for specific
+regions</a>
+<ul>
+<li><a href="#invertebrate-density" id="toc-invertebrate-density">Invertebrate density</a></li>
+</ul></li>
+<li><a href="#functions-for-all-regions-and-years" id="toc-functions-for-all-regions-and-years">Functions for all regions
+and years</a>
+<ul>
+<li><a href="#esa-listed-corals---presence-absence" id="toc-esa-listed-corals---presence-absence">ESA listed corals -
+presence absence</a></li>
+<li><a href="#bleaching-abundance" id="toc-bleaching-abundance">Bleaching abundance</a></li>
+<li><a href="#section" id="toc-section"></a></li>
+<li><a href="#new-functions" id="toc-new-functions">New
+Functions</a></li>
+</ul></li>
+<li><a href="#frequently-asked-questions" id="toc-frequently-asked-questions">Frequently asked questions:</a></li>
+<li><a href="#disclaimer" id="toc-disclaimer">Disclaimer</a></li>
+</ul>
+</div>
+
+<div id="description" class="section level1">
+<h1>Description</h1>
+<p>The ncrmp.benthic.analysis package is designed to use benthic coral
+reef data collected from the Atlantic regions of NOAA’s National Coral
+Reef Monitoring Program (NCRMP) to complete the following:</p>
+<ol style="list-style-type: decimal">
+<li><p>Compute summary statistics (e.g. coral density, percent cover,
+species richness, old and recent mortality, disease prevalence,
+<em>Diadema</em> density) from the site to the regional level as well as
+presence/absence of ESA species and bleaching abundance at the strata
+and site levels, respectively.</p></li>
+<li><p>House all current NCRMP benthic data ranging from analysis ready
+data to regional domain estimates in a standardized format. This
+includes all metrics listed in item #1 calculated at the site, strata
+and regional level (as applicable) as well as the most recent sampling
+grids and NTOT files. There are over 250 dataframes stored in this
+package.</p></li>
+</ol>
+<p>Note:</p>
+<ul>
+<li><p>This package assumes some familiarity with NCRMP sampling methods
+and analysis ready (AR) data formats. NCEI and CoRIS archived AR data,
+data dictionaries and sampling protocols can be found on the NCRMP
+project page, <a href="https://coastalscience.noaa.gov/project/national-coral-reef-monitoring-program-biological-socioeconomic/" class="uri">https://coastalscience.noaa.gov/project/national-coral-reef-monitoring-program-biological-socioeconomic/</a>
+under “Products, Datasets and Reports”</p></li>
+<li><p>This package currently uses NOAA’s NCRMP Atlantic benthic data
+only. See <a href="https://github.com/jeremiaheb/rvc#reef-visual-census-statistical-package-in-r" class="uri">https://github.com/jeremiaheb/rvc#reef-visual-census-statistical-package-in-r</a>
+for Atlantic fish R package.</p></li>
+<li><p>Where indicated in file names by NCRMP_FRRP or NCRMP_DRM, NCRMP
+and Disturbrance Response Monitoring (DRM; formerly known as Florida
+Reef Resilience Program or FRRP) data from 2014 to present have been
+combined during co-sampling (even) years. DRM only data are used for
+non-NCRMP (odd) years. We are in the process of changing the naming
+convention from FRRP to DRM but at present DRM and FRRP are used
+interchangeably. Please be patient while we complete this
+transition.</p></li>
+<li><p>SEFCRI 2014 coral demographics, benthic cover and
+invertebrates/ESA corals data, FLK 2014 benthic cover and
+invertebrates/ESA corals data, and Tortugas 2018 coral demographic data
+are 2 stage (2 transects per site). Site level metrics for these regions
+and years are the mean of transect 1 and transect 2. Strata and regional
+means are then calculated from these site level data.</p></li>
+</ul>
+<p>For questions, please contact the repository owner, Shay Viehman, <a href="mailto:shay.viehman@noaa.gov" class="email">shay.viehman@noaa.gov</a></p>
+<div id="ncrmp-regions-and-sampling-years" class="section level3">
+<h3>NCRMP Regions and sampling years</h3>
+<ul>
+<li>Florida:
+<ul>
+<li>Southeast Florida (SEFCRI; 2014, 2016, 2018, 2020, 2022)</li>
+<li>Florida Keys (FLK; 2014, 2016, 2018, 2020*, 2022)</li>
+<li>Dry Tortugas (Tortugas; 2014, 2016, 2018, 2020, 2022)</li>
+</ul></li>
+<li>Caribbean:
+<ul>
+<li>St. Thomas &amp; St. John (STTSTJ; 2013, 2015, 2017, 2019,
+2021)</li>
+<li>St. Croix (STX; 2015, 2017, 2019, 2021)</li>
+<li>Puerto Rico (PRICO; 2014, 2016, 2019, 2021)</li>
+</ul></li>
+<li>Gulf of America:
+<ul>
+<li>Flower Garden Banks National Marine Sanctuary (FGB; 2013, 2015,
+2018, 2022)</li>
+</ul></li>
+</ul>
+<p>Upcoming data additions: Caribbean 2023 (in 2024)</p>
+</div>
+<div id="installation" class="section level2">
+<h2>Installation</h2>
+<ol style="list-style-type: decimal">
+<li><p>Download the zipped R package using the green “Clone or download”
+button. Unzip the file.</p></li>
+<li><p>In R studio, open the ncrmp.benthics.analysis R project in the
+folder of the same name and use the following code to install the
+pacakge. You must be in the in the ncrmp.benthics.analysis R project. If
+you aleady have devtools installed you can skip the first line.</p></li>
+</ol>
+<pre><code>install.packages(&#39;devtools&#39;)
+
+devtools::install()</code></pre>
+<ol start="3" style="list-style-type: decimal">
+<li><p>Exit the ncrmp.benthics.analysis R project and check your R
+library to confirm the package installed. At this point you can either
+delete the files from the zipped folder or retain them if you are
+interested in the analysis code.</p></li>
+<li><p>From your current project, use the following code to load and use
+the package.</p></li>
+</ol>
+<pre><code>library(ncrmp.benthics.analysis) </code></pre>
+<ol start="5" style="list-style-type: decimal">
+<li>To update the package (when new data is added), repeat steps 1-4. If
+you are having trouble, try deleting the old version first before
+intalling the new one.</li>
+</ol>
+<p>Note: Requires R version 3.4.1 or higher.</p>
+<p>Currently, you cannot load the package directly from Git Hub using
+devtools::install_github(‘shgroves/NCRMP_benthics’). Future updates will
+inlcude this feature.</p>
+<hr />
+</div>
+</div>
+<div id="to-use-this-package-as-a-data-repository" class="section level1">
+<h1>To use this package as a data repository</h1>
+<p>To use this package as a data repository requires very little
+experience with R! You will need to have R version 3.4.1 or higher
+installed on your computer as well as R Studio desktop. Please see <a href="https://cran.r-project.org/doc/manuals/r-release/R-admin.html" class="uri">https://cran.r-project.org/doc/manuals/r-release/R-admin.html</a>
+and <a href="https://www.rstudio.com/products/rstudio/download/" class="uri">https://www.rstudio.com/products/rstudio/download/</a> for
+more information.</p>
+<div id="accessing-data" class="section level2">
+<h2>Accessing Data</h2>
+<p>Since all datasets are stored within the package, you can either use
+the dataset directly in your code or assign it to an object in your
+Global Environment.</p>
+<p><strong>Add dataframe to the Global Environment</strong></p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># require(ncrmp.benthics.analysis)</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co"># #The &#39;data&#39; function will load a dataframe to the Global Environment keeping the existing name,</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co"># data(&quot;NCRMP_DRM_FLK_2014_22_density_site&quot;)</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co"># #or you can give it a new name</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co"># dat &lt;- NCRMP_DRM_FLK_2014_22_density_site</span></span></code></pre></div>
+<p>If you need to use a dataframe outside of R, you can export it as a
+CSV file using the write.csv() function.</p>
+<p><strong>Export a dataframe</strong></p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># require(ncrmp.benthics.analysis)</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co"># write.csv(NCRMP_DRM_FLK_2014_18_density_site, &quot;Your file path\\NCRMP_DRM_FLK_14_16_density_site.csv&quot;, row.names = F)</span></span></code></pre></div>
+<p><strong>Use a dataframe in a ggplot</strong></p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># require(ncrmp.benthics.analysis)</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co"># require(ggplot2)</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co"># # Load weighted strata means</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co"># Hardcoral &lt;- NCRMP_STTSTJ_2013_21_cover_region %&gt;%</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#   dplyr::ungroup() %&gt;%</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#   # filter to just hardcoral</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#   dplyr::filter(cover_group == &quot;HARD CORALS&quot;) %&gt;%</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#   # Change Year to factor so R sees it as a grouping variable and not a numberd</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#   dplyr::mutate(YEAR = as.factor(YEAR))</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="co"># # Create your plot</span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co"># ggplot(Hardcoral, aes(x = YEAR, y = avCvr, group = YEAR)) +</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co">#   geom_bar(aes(fill = YEAR), stat=&quot;identity&quot;, colour=&quot;black&quot;,</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="co">#            position=position_dodge(),</span></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="co">#            size=.3) +</span></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="co"># # Add error bars</span></span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a><span class="co">#   geom_errorbar(aes(ymax = avCvr+SE, ymin = avCvr-SE), width = .5, position=position_dodge(1)) +</span></span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a><span class="co"># # Set the y axis scale</span></span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a><span class="co">#   scale_y_continuous(limits = c(0,25), expand = c(0, 0)) +</span></span>
+<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a><span class="co"># # Add axis labels</span></span>
+<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a><span class="co">#   xlab(&quot;Year&quot;) +</span></span>
+<span id="cb5-23"><a href="#cb5-23" tabindex="-1"></a><span class="co">#   ylab(&quot;Cover (%)&quot;) +</span></span>
+<span id="cb5-24"><a href="#cb5-24" tabindex="-1"></a><span class="co">#   labs(title = &quot;Hard coral cover&quot;) + </span></span>
+<span id="cb5-25"><a href="#cb5-25" tabindex="-1"></a><span class="co"># # Remove legend </span></span>
+<span id="cb5-26"><a href="#cb5-26" tabindex="-1"></a><span class="co">#   theme(legend.position=&quot;none&quot;)</span></span></code></pre></div>
+</div>
+<div id="datasets" class="section level2">
+<h2>Datasets</h2>
+<p>Datasets contained within the package at the strata and regional
+level are created using the default function parameters:</p>
+<ul>
+<li>For Florida regions:
+<ul>
+<li>project = “NCRMP” (NCRMP only) or “NCRMP_DRM” (NCRMP and DRM
+combined)</li>
+<li>species filter = FALSE (filter not applied)</li>
+</ul></li>
+<li>For all Carib regions:
+<ul>
+<li>project = “NCRMP”</li>
+<li>species filter = FALSE</li>
+</ul></li>
+<li>For FGB:
+<ul>
+<li>project = “NCRMP”</li>
+<li>species filter = FALSE</li>
+</ul></li>
+</ul>
+<div id="analysis-ready-ar-data" class="section level3">
+<h3>Analysis Ready (AR) data</h3>
+<p>Analysis ready NCRMP datasets for all regions and years are contained
+within this package in the most recent NCRMP Atlantic archive
+format.</p>
+<div id="dataset-naming-convention" class="section level4">
+<h4>Dataset Naming Convention:</h4>
+<p>Datasets are structured as follows:</p>
+<p><code>REGION_YEAR_datatype</code></p>
+<p>Where:</p>
+<ul>
+<li><p>REGION = regional code (ex: “SEFCRI” or “FLK”)</p></li>
+<li><p>YEAR = Year of data collection</p></li>
+<li><p>datatype = <code>benthic_cover</code>,
+<code>coral_demographics</code>, or
+<code>inverts_ESAcorals</code></p></li>
+</ul>
+<p>Two-stage (2-transect) data are labeled explicitly
+<strong>except</strong> for <em>Tortugas 2018</em>, where NCRMP and DRM
+data were combined. Tortugas 2018 coral demographics surveys were a
+joint mission between NCRMP and DRM where two transects were conducted
+at each site. The NCRMP and DRM data are combined and indistinguishable.
+All other datasets are single transect.</p>
+<ul>
+<li>Examples:
+<ul>
+<li><code>FLK_2016_coral_demographics,</code></li>
+<li><code>SEFCRI_2014_2stage_benthic_cover</code></li>
+<li><code>FGBNMS_2013_inverts_ESAcorals</code></li>
+</ul></li>
+</ul>
+<p>Additionally, two datasets aggregate all regions and years:</p>
+<ul>
+<li><p><code>NCRMP_benthic_cover_All_regions_years</code></p></li>
+<li><p><code>NCRMP_demo_All_regions_years</code></p></li>
+</ul>
+</div>
+<div id="florida-drm-and-scream-data" class="section level4">
+<h4>Florida DRM and SCREAM Data</h4>
+<p>In addition, the following AR Florida DRM and Sanctuary Coral Reef
+Ecosystem Assessment Monitoring (SCREAM) datasets in NCRMP format are
+stored in the package. Combined DRM and SCREAM data are from 1999 to
+2013 (not all regions are sampled each year) and individual DRM regions
+are 2014 to the most recent year of sampling.</p>
+<ul>
+<li><code>preNCRMP_SCREAM_DRM_coral_demographics</code></li>
+<li><code>DRM_SEFCRI_2014_2022_2stage_coral_demographics</code>-
+includes data from 2014-2022</li>
+<li><code>DRM_FLK_2014_2022_2stage_coral_demographics</code>- includes
+data from 2014-2022</li>
+<li><code>DRM_Tort_2014_2022_2stage_coral_demographics</code>- includes
+data from 2014-2022</li>
+</ul>
+</div>
+</div>
+<div id="summary-dataframes" class="section level3">
+<h3>Summary dataframes</h3>
+<p>Summary dataframes are provided for site, strata and weighted
+regional means. These dataframes also follow a standardized naming
+convention.</p>
+<div id="dataset-naming-convention-1" class="section level4">
+<h4>Dataset Naming Convention:</h4>
+<p><code>PROJECT_REGION_YEAR_datatype_level</code></p>
+<p>Where:</p>
+<ul>
+<li><p>PROJECT = NCRMP or NCRMP_DRM</p></li>
+<li><p>REGION = Regional code ex: “PRICO” or “FLK”</p></li>
+<li><p>YEARs = time range, ex: 2014_22 or 2013_22</p></li>
+<li><p>datatype = data type, ex: dis_prev or density</p></li>
+<li><p>level = site, strata, region, domain</p></li>
+</ul>
+<p>Examples:</p>
+<ul>
+<li><p><code>NCRMP_DRM_FLK_2014_22_dis_prev_site,</code></p></li>
+<li><p><code>NCRMP_FGBNMS_2013_22_density_strata,</code></p></li>
+<li><p><code>NCRMP_FLK_2014_22_rec_mort_region,</code></p></li>
+<li><p><code>NCRMP_PRICO_2014_21_richness_strata,</code></p></li>
+<li><p><code>NCRMP_STX_2015_21_cover_region</code></p></li>
+</ul>
+<p>In addition, there are three dataframes that contain all regions and
+years</p>
+<ul>
+<li><code>NCRMP_AllRegions_Years_ESA_PresAbs_Site</code></li>
+<li><code>NCRMP_AllRegions_Years_ESA_PresAbs_Strat</code></li>
+<li><code>NCRMP_bleaching_abundance_Allyears_Allregions</code></li>
+</ul>
+</div>
+</div>
+<div id="shapefiles-and-ntot-files" class="section level3">
+<h3>Shapefiles and NTOT files</h3>
+<p>The most recent sampling grid shapefiles used for site allocation and
+all NTOT (grid summary) files are also contained in the package. Grids
+can be used in R or exported as shapefiles.</p>
+<p>Sampling grids:</p>
+<ul>
+<li><code>SEFCRI_2018_sample_frame</code></li>
+<li><code>FLK_2020_coral_demographics</code></li>
+<li><code>Tort_2020_sample_frame</code></li>
+<li><code>STTSTJ_2021_sample_frame_WGS1984</code></li>
+<li><code>STX_2021_sample_frame_WGS1984</code></li>
+<li><code>PRICO_2021_sample_frame_WGS1984</code></li>
+<li><code>FGBNMS_2018_sample_frame_WGS1984</code></li>
+</ul>
+<p>The NTOT files are required to properly apply the weighting scheme to
+summary data and often differ between years.</p>
+<p>Available NTOT files:</p>
+<ul>
+<li><code>USVI_2021_NTOT</code> (STTSTJ &amp; STX)</li>
+<li><code>FLK: FLK_2014_NTOT</code>, <code>FLK_2016_NTOT</code>,
+<code>FLK_2018_NTOT</code>, <code>FLK_2020_NTOT</code>,
+<code>FLK_2022_NTOT</code></li>
+<li><code>SEFCRI: SEFL_2014_NTOT</code>, <code>SEFL_2016_NTOT</code>,
+<code>SEFL_2018_NTOT</code>, <code>SEFL_2020_NTOT</code>,
+<code>SEFL_2020_NTOT</code></li>
+<li><code>Tortugas: Tort_2014_NTOT</code>, <code>Tort_2016_NTOT</code>,
+<code>Tort_2018_NTOT</code>, <code>Tort_2020_NTOT</code>,
+<code>Tort_2022_NTOT</code></li>
+<li><code>PRICO_2021_NTOT</code></li>
+<li><code>FGBNMS_2022_NTOT</code></li>
+</ul>
+<p>The Florida Keys National Marine Sanctuary (FKNMS) and the Flower
+Garden Banks National Marine Sanctuary (FGBNMS) boundary polygons are
+also contained in the package. More boundary polygons for other regions
+will be added in future updates.</p>
+<ul>
+<li>Boundaries
+<ul>
+<li><code>FKNMS_boundary</code></li>
+<li><code>FGBNMS_boundary</code></li>
+</ul></li>
+</ul>
+</div>
+<div id="additional-files" class="section level3">
+<h3>Additional files</h3>
+<ul>
+<li><code>ncrmp_frrp_sppcodes</code>: species code, species names and
+benthic categories for NCRMP and other Florida monitoring programs.</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="to-use-the-functions-in-this-package" class="section level1">
+<h1>To use the functions in this package</h1>
+<p>If you would like to run the AR data through the functions, apply
+preset species filters to certain functions or just know more about how
+NCRMP metrics are calculated, please feel free to use these functions or
+check out the code. Comments or suggestions on how to improve the
+package are welcome.</p>
+</div>
+<div id="functions-for-specific-regions" class="section level1">
+<h1>Functions for specific regions</h1>
+<p>These functions generate outputs for a single region and either a
+single year or multiple sampling years. They apply a stratified random
+sampling weighting scheme to compute metrics at the regional (sampling
+domain) level.</p>
+<div id="benthic-cover" class="section level6">
+<h6>Benthic cover</h6>
+</div>
+<div id="ncrmp_calculate_cover" class="section level3">
+<h3>NCRMP_calculate_cover</h3>
+<p><strong>Purpose:</strong> Calculates percent cover from species to
+regional level for individual years</p>
+<ul>
+<li>parameters:
+<ul>
+<li><p>region: “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”, “STX”, “PRICO”,
+“FGB”</p></li>
+<li><p>project: “NCRMP”, or “MIR” Note - MIR option is in
+development.</p></li>
+</ul></li>
+<li>outputs (dataframes):
+<ul>
+<li><p>cover_group_key: a region specific key for species codes and
+major benthic categories</p></li>
+<li><p>percent_cover_species: site level percent cover by
+species</p></li>
+<li><p>percent_cover_site: site level percent cover by major benthic
+category</p></li>
+<li><p>cover_strata: strata level mean percent cover of major benthic
+categories (unweighted)</p></li>
+<li><p>Domain estimates: weighted regional (domain level) percent cover
+of major benthic categories</p></li>
+<li><p>Domain_check: QAQC check that sums the regional percent cover.
+Should equal ~100</p></li>
+<li><p>cover_check_site: QAQC check that sums the percent cover for each
+site. Should equal 100</p></li>
+</ul></li>
+<li>Gets Called by:
+<ul>
+<li><code>NCRMP_make_weighted_LPI_data</code></li>
+<li><code>load_NCRMP_benthic_cover_data</code></li>
+</ul></li>
+</ul>
+<p>Example:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co"># require(ncrmp.benthics.analysis)</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co"># # Run function and assign names to dataframes </span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co"># tmp &lt;- NCRMP_calculate_cover(region = &quot;SEFCRI&quot;, project = &quot;NCRMP&quot;)</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co"># # The function will store all of the function outputs as a list in tmp</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co"># # Convert list objects to dataframes and rename </span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co"># NCRMP_SEFCRI_2014_22_percent_cover_species &lt;- tmp$percent_cover_species</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co"># NCRMP_SEFCRI_2014_22_percent_cover_site &lt;- tmp$percent_cover_site</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co"># NCRMP_SEFCRI_2014_22_cover_group_key &lt;- tmp$cover_group_key</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co"># NCRMP_SEFCRI_2014_22_cover_strata &lt;- tmp$cover_strata</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co"># NCRMP_SEFCRI_2014_22_cover_region &lt;- tmp$Domain_est</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co"># NCRMP_SEFCRI_2014_22_Domain_check &lt;- tmp$Domain_check </span></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="co"># cover_check_site &lt;- tmp$cover_check_site</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="co"># # OR add them all at once into your global environment</span></span>
+<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a><span class="co"># list2env(tmp, envir = .GlobalEnv)</span></span></code></pre></div>
+</div>
+<div id="ncrmp_colony_percent_cover" class="section level3">
+<h3>NCRMP_colony_percent_cover</h3>
+<p><strong>Purpose:</strong> This function calculates coral cover strata
+means and regional weighted means by species. It also produces a plot of
+percent cover by species for the most recent year of data available for
+the region</p>
+<ul>
+<li>parameters:
+<ul>
+<li><p>region (string): “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”, “STX”,
+“PRICO”, “FGB”</p></li>
+<li><p>project (string): “NCRMP”, or “MIR” Note - MIR option is in
+development</p></li>
+<li><p>file_path (string): file path where the output figure should be
+stored</p></li>
+<li><p>ptitle (string): title of the plot</p></li>
+</ul></li>
+<li>outputs (dataframes):
+<ul>
+<li>region_means</li>
+<li>strata_means</li>
+<li>plot (jpeg file)</li>
+</ul></li>
+</ul>
+<p>Gets Called by:</p>
+<p><code>NCRMP_make_weighted_species_coral_cover_data</code></p>
+</div>
+<div id="load_ncrmp_benthic_cover_data" class="section level3">
+<h3>load_NCRMP_benthic_cover_data</h3>
+<p><strong>Purpose:</strong> load and combine benthic cover data for a
+given project (NCRMP or MIR) and region</p>
+<ul>
+<li>parameters:
+<ul>
+<li><p>region: “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”, “STX”, “PRICO”,
+“FGB”</p></li>
+<li><p>project: “NCRMP”, or “MIR” Note - MIR option is in
+development.</p></li>
+</ul></li>
+<li>outputs (dataframes):
+<ul>
+<li>dat (dataframe): containing the combined benthic cover data</li>
+</ul></li>
+</ul>
+</div>
+<div id="ncrmp_make_weighted_lpi_data" class="section level3">
+<h3>NCRMP_make_weighted_LPI_data</h3>
+<p><strong>Purpose: Applies weighting scheme to benthic cover
+data</strong></p>
+<p>Strata Definitions by Region:</p>
+<ul>
+<li><p><strong>Caribbean (USVI, PRICO):</strong> Strata are defined by
+HABITAT CODE + DEPTH STRAT.</p></li>
+<li><p><strong>Gulf of America (FGB):</strong> Only one strata (FGBNMS)
+is used, meaning no weighting is applied.</p></li>
+<li><p><strong>Florida:</strong></p>
+<ul>
+<li><p><strong>SEFCRI:</strong> Strata are defined by STRAT (no
+PROT).</p></li>
+<li><p><strong>FLK:</strong> PROT is always set to 0 because benthic
+sites are not allocated at the PROT level.</p></li>
+<li><p><strong>Tortugas:</strong> PROT is maintained as is.</p></li>
+</ul></li>
+</ul>
+<p>This function is called within <code>NCRMP_calculate_cover</code>,
+meaning the <strong>region</strong> and <strong>year</strong> parameters
+you provide there will be automatically passed on.</p>
+<p>Example of weighting application for Florida:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="co">#Calculate average cover (avcvr), stratum variance (svar), n and std at the strata and regional level using STRAT + PROT as the analysis strata. Inputdata = 1 stage site level cover for major benthic categories and ntot = the most recent NTOT file for the region, regardless of sampling year. </span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co"># cover_est &lt;- inputdata %&gt;%</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#    # group by analysis level strata</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#   dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, &quot;/ PROT =&quot;, PROT, sep = &quot; &quot;)) %&gt;%</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#   dplyr::group_by(ANALYSIS_STRATUM, STRAT, PROT, cover_group) %&gt;% </span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#   dplyr::summarise(</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#     # calculate mean cover</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#     avcvr = mean(Percent_Cvr),</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#     # calculate stratum variance</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#     svar = var(Percent_Cvr),</span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#     # calculate N</span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="co">#     n = sum(n),</span></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="co">#     # calculate mean stratum depth</span></span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a><span class="co">#     MIN_DEPTH = mean(MIN_DEPTH),</span></span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a><span class="co">#     MAX_DEPTH = mean(MAX_DEPTH),</span></span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a><span class="co">#     DEPTH_M = (MIN_DEPTH+MAX_DEPTH)/2) %&gt;%</span></span>
+<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a><span class="co">#   </span></span>
+<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a><span class="co">#   # convert 0 for stratum variance so that the sqrt is a small # but not a 0</span></span>
+<span id="cb7-21"><a href="#cb7-21" tabindex="-1"></a><span class="co">#   dplyr::mutate(svar = dplyr::case_when(svar == 0 ~ 0.00000001,</span></span>
+<span id="cb7-22"><a href="#cb7-22" tabindex="-1"></a><span class="co">#                                         TRUE ~ svar)) %&gt;%</span></span>
+<span id="cb7-23"><a href="#cb7-23" tabindex="-1"></a><span class="co">#   dplyr::mutate(std = sqrt(svar))</span></span>
+<span id="cb7-24"><a href="#cb7-24" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb7-25"><a href="#cb7-25" tabindex="-1"></a><span class="co"># cover_est &lt;- cover_est %&gt;%</span></span>
+<span id="cb7-26"><a href="#cb7-26" tabindex="-1"></a><span class="co">#   # Merge ntot with cover_est</span></span>
+<span id="cb7-27"><a href="#cb7-27" tabindex="-1"></a><span class="co">#   dplyr::full_join(., ntot) %&gt;%</span></span>
+<span id="cb7-28"><a href="#cb7-28" tabindex="-1"></a><span class="co">#   # stratum estimates</span></span>
+<span id="cb7-29"><a href="#cb7-29" tabindex="-1"></a><span class="co">#   dplyr::mutate(whavcvr = wh * avcvr,</span></span>
+<span id="cb7-30"><a href="#cb7-30" tabindex="-1"></a><span class="co">#                 whsvar = wh^2 * svar,</span></span>
+<span id="cb7-31"><a href="#cb7-31" tabindex="-1"></a><span class="co">#                 whstd = wh * std,</span></span>
+<span id="cb7-32"><a href="#cb7-32" tabindex="-1"></a><span class="co">#                 n = tidyr::replace_na(n, 0))</span></span>
+<span id="cb7-33"><a href="#cb7-33" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb7-34"><a href="#cb7-34" tabindex="-1"></a><span class="co"># # Reformat data</span></span>
+<span id="cb7-35"><a href="#cb7-35" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb7-36"><a href="#cb7-36" tabindex="-1"></a><span class="co"># # cover, unweighted by strata</span></span>
+<span id="cb7-37"><a href="#cb7-37" tabindex="-1"></a><span class="co"># cover_strata &lt;- cover_est %&gt;%</span></span>
+<span id="cb7-38"><a href="#cb7-38" tabindex="-1"></a><span class="co">#   dplyr::select(REGION, YEAR, ANALYSIS_STRATUM, STRAT, RUG_CD, PROT, DEPTH_M, NTOT, ngrtot, wh, cover_group, n, avcvr, svar, std) %&gt;%</span></span>
+<span id="cb7-39"><a href="#cb7-39" tabindex="-1"></a><span class="co">#   dplyr::mutate(METHOD = &quot;UNWEIGHTED&quot;) %&gt;%</span></span>
+<span id="cb7-40"><a href="#cb7-40" tabindex="-1"></a><span class="co">#   dplyr::mutate(n = tidyr::replace_na(n, 0))</span></span>
+<span id="cb7-41"><a href="#cb7-41" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb7-42"><a href="#cb7-42" tabindex="-1"></a><span class="co"># # Calculate Domain Estimates</span></span>
+<span id="cb7-43"><a href="#cb7-43" tabindex="-1"></a><span class="co">#   Domain_est &lt;- cover_est %&gt;%</span></span>
+<span id="cb7-44"><a href="#cb7-44" tabindex="-1"></a><span class="co">#     dplyr::group_by(REGION, YEAR, cover_group) %&gt;%</span></span>
+<span id="cb7-45"><a href="#cb7-45" tabindex="-1"></a><span class="co">#     dplyr::summarise(avCvr = sum(whavcvr),</span></span>
+<span id="cb7-46"><a href="#cb7-46" tabindex="-1"></a><span class="co">#                      var = sum(whsvar, na.rm = T),</span></span>
+<span id="cb7-47"><a href="#cb7-47" tabindex="-1"></a><span class="co">#                      std = sqrt(var),</span></span>
+<span id="cb7-48"><a href="#cb7-48" tabindex="-1"></a><span class="co">#                      ngrtot = sum(NTOT) )</span></span></code></pre></div>
+<p>Example of weighting application for Caribbean and FGB:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co"># Calculate average cover (avcvr), stratum variance (svar), n and std at the strata and regional level using HABITAT + DEPTH_STRAT as the analysis strata. Inputdata = 1 stage site level cover for major benthic categories and ntot = the most recent NTOT file for the region, regardless of sampling year. </span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co"># cover_est &lt;- inputdata %&gt;%</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#   # group by analysis level strata</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#   dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, cover_group) %&gt;% </span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#   dplyr::summarise(</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#     # compute average cover</span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">#     avcvr = mean(Percent_Cvr),</span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#     # compute stratum variance</span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#     svar = var(Percent_Cvr),</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#     # calculate N</span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#     n = sum(n),</span></span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#     # calculate mean stratum depth</span></span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#     MIN_DEPTH = mean(MIN_DEPTH),</span></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co">#     MAX_DEPTH = mean(MAX_DEPTH),</span></span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="co">#     DEPTH_M = (MIN_DEPTH+MAX_DEPTH)/2) %&gt;%</span></span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="co">#   # convert 0 for stratum variance so that the sqrt is a small # but not a 0</span></span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a><span class="co">#   dplyr::mutate(svar = dplyr::case_when(svar == 0 ~ 0.00000001,</span></span>
+<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a><span class="co">#                                         TRUE ~ svar)) %&gt;%</span></span>
+<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a><span class="co">#   dplyr::mutate(std = sqrt(svar))</span></span>
+<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a><span class="co"># cover_est &lt;- cover_est %&gt;%</span></span>
+<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a><span class="co">#   # Merge ntot with cover_est</span></span>
+<span id="cb8-25"><a href="#cb8-25" tabindex="-1"></a><span class="co">#   dplyr::full_join(., ntot) %&gt;%</span></span>
+<span id="cb8-26"><a href="#cb8-26" tabindex="-1"></a><span class="co">#   # stratum estimates</span></span>
+<span id="cb8-27"><a href="#cb8-27" tabindex="-1"></a><span class="co">#   dplyr::mutate(whavcvr = wh * avcvr,</span></span>
+<span id="cb8-28"><a href="#cb8-28" tabindex="-1"></a><span class="co">#                 whsvar = wh^2 * svar,</span></span>
+<span id="cb8-29"><a href="#cb8-29" tabindex="-1"></a><span class="co">#                 whstd = wh * std,</span></span>
+<span id="cb8-30"><a href="#cb8-30" tabindex="-1"></a><span class="co">#                 n = tidyr::replace_na(n, 0),</span></span>
+<span id="cb8-31"><a href="#cb8-31" tabindex="-1"></a><span class="co">#                 # Add the following to match FL format</span></span>
+<span id="cb8-32"><a href="#cb8-32" tabindex="-1"></a><span class="co">#                 PROT = NA,</span></span>
+<span id="cb8-33"><a href="#cb8-33" tabindex="-1"></a><span class="co">#                 RUG_CD = NA)</span></span>
+<span id="cb8-34"><a href="#cb8-34" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb8-35"><a href="#cb8-35" tabindex="-1"></a><span class="co"># # Reformat data</span></span>
+<span id="cb8-36"><a href="#cb8-36" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb8-37"><a href="#cb8-37" tabindex="-1"></a><span class="co"># # cover, unweighted by strata</span></span>
+<span id="cb8-38"><a href="#cb8-38" tabindex="-1"></a><span class="co"># cover_strata &lt;- cover_est %&gt;%</span></span>
+<span id="cb8-39"><a href="#cb8-39" tabindex="-1"></a><span class="co">#   dplyr::select(REGION, YEAR, ANALYSIS_STRATUM, STRAT, RUG_CD, PROT, DEPTH_M, NTOT, ngrtot, wh, cover_group, n, avcvr, svar, std) %&gt;%</span></span>
+<span id="cb8-40"><a href="#cb8-40" tabindex="-1"></a><span class="co">#   dplyr::mutate(METHOD = &quot;UNWEIGHTED&quot;) %&gt;%</span></span>
+<span id="cb8-41"><a href="#cb8-41" tabindex="-1"></a><span class="co">#   dplyr::mutate(n = tidyr::replace_na(n, 0))</span></span>
+<span id="cb8-42"><a href="#cb8-42" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb8-43"><a href="#cb8-43" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb8-44"><a href="#cb8-44" tabindex="-1"></a><span class="co"># ## Calculate Domain Estimates</span></span>
+<span id="cb8-45"><a href="#cb8-45" tabindex="-1"></a><span class="co"># Domain_est &lt;- cover_est %&gt;%</span></span>
+<span id="cb8-46"><a href="#cb8-46" tabindex="-1"></a><span class="co">#   dplyr::group_by(REGION, YEAR, cover_group) %&gt;%</span></span>
+<span id="cb8-47"><a href="#cb8-47" tabindex="-1"></a><span class="co">#   dplyr::summarise(avCvr = sum(whavcvr),</span></span>
+<span id="cb8-48"><a href="#cb8-48" tabindex="-1"></a><span class="co">#                    var = sum(whsvar, na.rm = T),</span></span>
+<span id="cb8-49"><a href="#cb8-49" tabindex="-1"></a><span class="co">#                    std = sqrt(var),</span></span>
+<span id="cb8-50"><a href="#cb8-50" tabindex="-1"></a><span class="co">#                    ngrtot = sum(NTOT) )</span></span>
+<span id="cb8-51"><a href="#cb8-51" tabindex="-1"></a><span class="co">#</span></span></code></pre></div>
+</div>
+<div id="ncrmp_drm_calculate_colony_density" class="section level3">
+<h3>NCRMP_DRM_calculate_colony_density</h3>
+<p><strong>Purpose: Calculates colony density from site to regional
+level for all sampling years</strong></p>
+<ul>
+<li><p>parameters:</p>
+<ul>
+<li><p>project: “NCRMP” (All regions), “NCRMP_DRM” (Florida regions
+only)</p></li>
+<li><p>region: “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”, “STX”, “PRICO”,
+“FGB”</p></li>
+<li><p>species_filter: A string indicating whether a region-specific
+preset species filter should be applied to density calculations (species
+codes listed) or all species should be included (FALSE; the
+default).</p></li>
+</ul></li>
+<li><p>outputs (dataframes):</p>
+<ul>
+<li><p>density_species: site level coral density by species</p></li>
+<li><p>density_site: site level coral density</p></li>
+<li><p>density_strata: strata level coral density (unweighted)</p></li>
+<li><p>Domain estimates: weighted regional (domain level) coral
+density</p></li>
+</ul></li>
+</ul>
+<p>Associated functions: NCRMP_make_weighted_demo_data,
+load_NCRMP_DRM_demo_data</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co"># require(ncrmp.benthics.analysis)</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co"># # Run function </span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co"># tmp &lt;- NCRMP_DRM_calculate_colony_density(project = &quot;NCRMP_DRM&quot;, </span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">#                                            region = &quot;FLK&quot;,</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#                                            species_filter = &quot;FALSE&quot;)</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co"># # The function will store all of the function outputs as a list in tmp</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co"># # Convert list objects to dataframes and rename </span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="co"># NCRMP_DRM_FLK_2014_22_density_species &lt;- tmp$density_species</span></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="co"># NCRMP_DRM_FLK_2014_22_density_site &lt;- tmp$density_site</span></span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a><span class="co"># NCRMP_DRM_FLK_2014_22_density_strata &lt;- tmp$density_strata</span></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a><span class="co"># NCRMP_DRM_FLK_2014_22_density_region &lt;- tmp$Domain_est</span></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a><span class="co"># # OR add them all at once into your global environment</span></span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a><span class="co"># list2env(tmp, envir = .GlobalEnv)</span></span></code></pre></div>
+</div>
+<div id="ncrmp_drm_colony_density_cv_and_occurrence" class="section level3">
+<h3>NCRMP_DRM_colony_density_CV_and_occurrence</h3>
+<p><strong>Calculates colony density and coefficient of variation (CV)
+by species at the regional level for all sampling years. Also produces a
+barplot of occurrence and CV by species for the most recent years
+data</strong></p>
+<ul>
+<li><p>parameters:</p>
+<ul>
+<li><p>project: “NCRMP” (All regions), “NCRMP_DRM” (Florida regions
+only)</p></li>
+<li><p>region: “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”, “STX”, “PRICO”,
+“FGB”</p></li>
+<li><p>species_filter: A string indicating whether a region-specific
+preset species filter should be applied to density calculations (species
+codes listed) or all species should be included (FALSE; the
+default).</p></li>
+<li><p>year: a numeric indicating the year of interest for plotting,
+usually the most recent year</p></li>
+<li><p>ptitle: a string indicating the figure title</p></li>
+<li><p>file_path: a string indicating the file path to store the
+produced figure</p></li>
+</ul></li>
+<li><p>outputs (dataframes):</p>
+<ul>
+<li><p>region_means: weighted regional (domain level) coral density by
+species</p></li>
+<li><p>region_means_cv20: weighted regional (domain level) coral density
+by species for species with a CV of 20 or less</p></li>
+</ul></li>
+</ul>
+<p>Associated functions: NCRMP_make_weighted_demo_data,
+load_NCRMP_DRM_demo_data, tech memo Rmds</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co"># require(ncrmp.benthics.analysis)</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co"># # Run function </span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co"># tmp &lt;- NCRMP_DRM_colony_density_CV_and_occurrence(region = &quot;Tortugas&quot;,</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#                                               ptitle = &quot;Dry Tortugas&quot;,</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#                                               year = 2022,</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#                                               file_path = &quot;K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Figures&quot; ,  #must be connected to VPN if filepath is to a network drive</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#                                               species_filter = &quot;NULL&quot;,</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#                                               project = &quot;NCRMP&quot;)</span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co"># # The function will store all of the function outputs as a list in tmp</span></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co"># # Convert list objects to dataframes and rename </span></span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="co"># NCRMP_Tort_Occ_Den_CV &lt;- tmp$region_means</span></span>
+<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a><span class="co"># NCRMP_Tort_Occ_Den_CV_20 &lt;- tmp$region_means_cv20</span></span></code></pre></div>
+</div>
+<div id="ncrmp_make_weighted_density_cv_data" class="section level3">
+<h3>NCRMP_make_weighted_density_CV_data</h3>
+<p><strong>Purpose:</strong> calculates regional weighted mean coral
+density and coefficient of variation (CV) for different coral
+species</p>
+<ul>
+<li><p>parameters:</p>
+<ul>
+<li><p>project (string): “NCRMP” (All regions), “NCRMP_DRM” (Florida
+regions only)</p></li>
+<li><p>region (string): “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”, “STX”,
+“PRICO”, “FGB”</p></li>
+<li><p>sppdens (dataframe): dataframe containing coral density
+data</p></li>
+</ul></li>
+<li><p>outputs (dataframes):</p>
+<ul>
+<li>region_means: regional weighted means of coral density &amp; CV</li>
+</ul></li>
+</ul>
+</div>
+<div id="ncrmp_make_weighted_demo_data" class="section level3">
+<h3>NCRMP_make_weighted_demo_data</h3>
+<p><strong>Applies weighting scheme to coral demographic data (coral
+density, species richness, mortality, disease/bleaching
+prevalence).</strong></p>
+<p>Strata Definitions by Region:</p>
+<ul>
+<li><p><strong>Caribbean (USVI, PRICO):</strong> Strata are defined by
+HABITAT CODE + DEPTH STRAT.</p></li>
+<li><p><strong>Gulf of America (FGB):</strong> Only one strata (FGBNMS)
+is used, meaning no weighting is applied.</p></li>
+<li><p><strong>Florida:</strong></p>
+<ul>
+<li><p><strong>SEFCRI:</strong> Strata are defined by STRAT (no
+PROT).</p></li>
+<li><p><strong>FLK:</strong> PROT is always set to 0 because benthic
+sites are not allocated at the PROT level.</p></li>
+<li><p><strong>Tortugas:</strong> PROT is maintained as is.</p></li>
+</ul></li>
+</ul>
+<p>This function is called within NCRMP_DRM_calculate_colony_density so
+the initial parameters you provide for region and year will be passed
+on.</p>
+<p>Example of weighting application for Florida:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co"># Calculate average density (avden), stratum variance (svar), n and std at the strata and regional level using STRAT + PROT as the analysis strata. Inputdata = 1 stage site level coral density and ntot = the most recent NTOT file for the region, regardless of sampling year. </span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co"># density_est &lt;- inputdata %&gt;%</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">#   # group by analysis level strata</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co">#   dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, &quot;/ PROT =&quot;, PROT, sep = &quot; &quot;)) %&gt;%</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co">#   dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, PROT) %&gt;% </span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="co">#   dplyr::summarise(</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co">#     # compute average density</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="co">#     avden = mean(DENSITY),</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="co">#     # compute stratum variance</span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co">#     svar = var(DENSITY),</span></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="co">#     # calculate N</span></span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a><span class="co">#     n = length(DENSITY)) %&gt;%</span></span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a><span class="co">#   # convert 0 for stratum variance so that the sqrt is a small # but not a 0</span></span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a><span class="co">#   dplyr::mutate(svar = dplyr::case_when(svar == 0 ~ 0.00000001,</span></span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a><span class="co">#                                         TRUE ~ svar)) %&gt;%</span></span>
+<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a><span class="co">#   dplyr::mutate(std = sqrt(svar))</span></span>
+<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a><span class="co"># density_est &lt;- density_est %&gt;%</span></span>
+<span id="cb11-21"><a href="#cb11-21" tabindex="-1"></a><span class="co">#   # Merge ntot with coral_est_spp</span></span>
+<span id="cb11-22"><a href="#cb11-22" tabindex="-1"></a><span class="co">#   dplyr::full_join(., ntot) %&gt;%</span></span>
+<span id="cb11-23"><a href="#cb11-23" tabindex="-1"></a><span class="co">#   # stratum estimates</span></span>
+<span id="cb11-24"><a href="#cb11-24" tabindex="-1"></a><span class="co">#   dplyr::mutate(whavden = wh * avden,</span></span>
+<span id="cb11-25"><a href="#cb11-25" tabindex="-1"></a><span class="co">#                 whsvar = wh^2 * svar,</span></span>
+<span id="cb11-26"><a href="#cb11-26" tabindex="-1"></a><span class="co">#                 whstd = wh * std,</span></span>
+<span id="cb11-27"><a href="#cb11-27" tabindex="-1"></a><span class="co">#                 n = tidyr::replace_na(n, 0))</span></span>
+<span id="cb11-28"><a href="#cb11-28" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb11-29"><a href="#cb11-29" tabindex="-1"></a><span class="co"># # Reformat output</span></span>
+<span id="cb11-30"><a href="#cb11-30" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb11-31"><a href="#cb11-31" tabindex="-1"></a><span class="co"># density_strata &lt;-  density_est %&gt;%</span></span>
+<span id="cb11-32"><a href="#cb11-32" tabindex="-1"></a><span class="co">#   dplyr::select(REGION, YEAR, ANALYSIS_STRATUM, STRAT, RUG_CD, PROT, NTOT, ngrtot, wh, n, avden, svar, std)</span></span>
+<span id="cb11-33"><a href="#cb11-33" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb11-34"><a href="#cb11-34" tabindex="-1"></a><span class="co"># # Calculate Domain Estimates</span></span>
+<span id="cb11-35"><a href="#cb11-35" tabindex="-1"></a><span class="co"># Domain_est &lt;- density_est %&gt;%</span></span>
+<span id="cb11-36"><a href="#cb11-36" tabindex="-1"></a><span class="co">#   dplyr::group_by(REGION, YEAR) %&gt;%</span></span>
+<span id="cb11-37"><a href="#cb11-37" tabindex="-1"></a><span class="co">#   dplyr::summarise(avDen = sum(whavden),</span></span>
+<span id="cb11-38"><a href="#cb11-38" tabindex="-1"></a><span class="co">#                    var = sum(whsvar, na.rm = T),</span></span>
+<span id="cb11-39"><a href="#cb11-39" tabindex="-1"></a><span class="co">#                    std = sqrt(var),</span></span>
+<span id="cb11-40"><a href="#cb11-40" tabindex="-1"></a><span class="co">#                    ngrtot = sum(NTOT) )</span></span></code></pre></div>
+<p>Example of weighting application for Caribbean:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a></span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="co"># Calculate average density (avden), stratum variance (svar), n and std at the strata and regional level using HABITAT + DEPTH_STRAT as the analysis strata. Inputdata = 1 stage site level coral density and ntot = the most recent NTOT file for the region, regardless of sampling year. </span></span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co"># # Calculate avdns, svar, n and std</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="co"># density_est &lt;- inputdata %&gt;%</span></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="co">#   # group by analysis level strata</span></span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co">#   dplyr::mutate(ANALYSIS_STRATUM = STRAT) %&gt;%</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="co">#   dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT) %&gt;% </span></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#   dplyr::summarise(# compute average density</span></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co">#     avden = mean(DENSITY),</span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#     # compute stratum variance</span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="co">#     svar = var(DENSITY),</span></span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a><span class="co">#     # calculate N</span></span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a><span class="co">#     n = length(DENSITY)) %&gt;%</span></span>
+<span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a><span class="co">#   # convert 0 for stratum variance so that the sqrt is a small # but not a 0</span></span>
+<span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a><span class="co">#   dplyr::mutate(svar = dplyr::case_when(svar == 0 ~ 0.00000001,</span></span>
+<span id="cb12-17"><a href="#cb12-17" tabindex="-1"></a><span class="co">#                                         TRUE ~ svar)) %&gt;%</span></span>
+<span id="cb12-18"><a href="#cb12-18" tabindex="-1"></a><span class="co">#   dplyr::mutate(std = sqrt(svar))</span></span>
+<span id="cb12-19"><a href="#cb12-19" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb12-20"><a href="#cb12-20" tabindex="-1"></a><span class="co"># density_est &lt;- density_est %&gt;%</span></span>
+<span id="cb12-21"><a href="#cb12-21" tabindex="-1"></a><span class="co">#   # Merge ntot with coral_est_spp</span></span>
+<span id="cb12-22"><a href="#cb12-22" tabindex="-1"></a><span class="co">#   dplyr::full_join(., ntot) %&gt;%</span></span>
+<span id="cb12-23"><a href="#cb12-23" tabindex="-1"></a><span class="co">#   # stratum estimates</span></span>
+<span id="cb12-24"><a href="#cb12-24" tabindex="-1"></a><span class="co">#   dplyr::mutate(whavden = wh * avden,</span></span>
+<span id="cb12-25"><a href="#cb12-25" tabindex="-1"></a><span class="co">#                 whsvar = wh^2 * svar,</span></span>
+<span id="cb12-26"><a href="#cb12-26" tabindex="-1"></a><span class="co">#                 whstd = wh * std,</span></span>
+<span id="cb12-27"><a href="#cb12-27" tabindex="-1"></a><span class="co">#                 n = tidyr::replace_na(n, 0),</span></span>
+<span id="cb12-28"><a href="#cb12-28" tabindex="-1"></a><span class="co">#                 # Add the following to match FL format </span></span>
+<span id="cb12-29"><a href="#cb12-29" tabindex="-1"></a><span class="co">#                 PROT = NA,           </span></span>
+<span id="cb12-30"><a href="#cb12-30" tabindex="-1"></a><span class="co">#                 RUG_CD = NA)</span></span>
+<span id="cb12-31"><a href="#cb12-31" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb12-32"><a href="#cb12-32" tabindex="-1"></a><span class="co"># # Reformat output</span></span>
+<span id="cb12-33"><a href="#cb12-33" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb12-34"><a href="#cb12-34" tabindex="-1"></a><span class="co"># density_strata &lt;-  density_est %&gt;%</span></span>
+<span id="cb12-35"><a href="#cb12-35" tabindex="-1"></a><span class="co">#   dplyr::select(REGION, YEAR, ANALYSIS_STRATUM, STRAT, RUG_CD, PROT, NTOT, ngrtot, wh, n, avden, svar, std)</span></span>
+<span id="cb12-36"><a href="#cb12-36" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb12-37"><a href="#cb12-37" tabindex="-1"></a><span class="co"># # Calculate Domain Estimates</span></span>
+<span id="cb12-38"><a href="#cb12-38" tabindex="-1"></a><span class="co"># Domain_est &lt;- density_est %&gt;%</span></span>
+<span id="cb12-39"><a href="#cb12-39" tabindex="-1"></a><span class="co">#   dplyr::group_by(REGION, YEAR) %&gt;%</span></span>
+<span id="cb12-40"><a href="#cb12-40" tabindex="-1"></a><span class="co">#   dplyr::summarise(avDen = sum(whavden),</span></span>
+<span id="cb12-41"><a href="#cb12-41" tabindex="-1"></a><span class="co">#                    var = sum(whsvar, na.rm = T),</span></span>
+<span id="cb12-42"><a href="#cb12-42" tabindex="-1"></a><span class="co">#                    std = sqrt(var),</span></span>
+<span id="cb12-43"><a href="#cb12-43" tabindex="-1"></a><span class="co">#                    ngrtot = sum(NTOT) )</span></span></code></pre></div>
+</div>
+<div id="ncrmp_make_weighted_species_coral_cover_data" class="section level3">
+<h3>NCRMP_make_weighted_species_coral_cover_data</h3>
+<p><strong>Purpose: C</strong>alculates weighted mean density and
+coefficient of variation (CV) for coral cover data by species</p>
+<ul>
+<li><p>Inputs</p>
+<ul>
+<li><p>project: “NCRMP_DRM” (Florida regions only), “NCRMP” (All
+regions)</p></li>
+<li><p>region: “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”, “STX”, “PRICO”,
+“FGB”</p></li>
+<li><p>sppcvr (dataframe): dataframe containing site- and species-level
+percent cover data</p></li>
+</ul></li>
+<li><p>Outputs:</p>
+<ul>
+<li><p>region_means (dataframe): regional weighted mean cover by coral
+species</p></li>
+<li><p>strata_means (dataframe): dataframe with strata-specific mean
+cover for coral species,</p></li>
+</ul></li>
+</ul>
+</div>
+<div id="ncrmp_drm_calculate_species_richness_diversity" class="section level3">
+<h3>NCRMP_DRM_calculate_species_richness_diversity</h3>
+<p>Calculates species richness from site to regional level for all
+sampling years. Calculates Simpson, Inverse Simpson and Shannon–Wiener
+diversity indices from site to regional level for all sampling years
+using the R package vegan.</p>
+<ul>
+<li><p>parameters:</p>
+<ul>
+<li><p>project: “NCRMP” (All regions), “NCRMP_DRM” (Florida regions
+only)</p></li>
+<li><p>region: “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”, “STX”, “PRICO”,
+“FGB”</p></li>
+</ul></li>
+<li><p>outputs (dataframes):</p>
+<ul>
+<li><p>species_list: a list of a species present for all sampling
+years</p></li>
+<li><p>richness_site: site level species richness. Includes juveniles.
+Note there is no accouting for transect length/effort</p></li>
+<li><p>richness_strata: strata level mean species richness (unweighted).
+Includes juveniles. Note there is no accouting for transect
+length/effort</p></li>
+<li><p>Domain estimates: weighted regional (domain level) species
+richness. Includes juveniles. Note there is no accouting for transect
+length/effort</p></li>
+<li><p>species_diversity_site: site level species diversity using the
+Simpson, Inverse Simpson and Shannon-Weiner diversity indices. Based
+only on adults since the abundance of juveniles is not recorded. Note
+there is no accouting for transect length/effort</p></li>
+<li><p>species_diversity_strata: strata level species diversity using
+the Simpson, Inverse Simpson and Shannon-Weiner diversity indices
+(unweighted). Based only on adults since the abundance of juveniles is
+not recorded. Note there is no accouting for transect
+length/effort</p></li>
+<li><p>species_diversity_region: weighted regional (domain level)
+species diversity using the Simpson, Inverse Simpson and Shannon-Weiner
+diversity indices. Based only on adults since the abundance of juveniles
+is not recorded. Note there is no accouting for transect
+length/effort</p></li>
+</ul></li>
+</ul>
+<p>Associated functions: NCRMP_make_weighted_demo_data</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="co"># require(ncrmp.benthics.analysis)</span></span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co"># # Run function </span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co"># tmp &lt;- NCRMP_DRM_calculate_species_richness_diversity(project = &quot;NCRMP&quot;,</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#                                                        region= &quot;Tortugas&quot;)</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="co"># # The function will store all of the function outputs as a list in tmp</span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a><span class="co"># # Convert list objects to dataframes and rename </span></span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a><span class="co"># NCRMP_Tort_2014_22_spp_list &lt;- tmp$species_list </span></span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a><span class="co"># NCRMP_Tort_2014_22_richness_site &lt;- tmp$richness_site</span></span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a><span class="co"># NCRMP_Tort_2014_22_richness_strata &lt;- tmp$richness_strata</span></span>
+<span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a><span class="co"># NCRMP_Tort_2014_22_richness_region &lt;- tmp$Domain_est</span></span>
+<span id="cb13-15"><a href="#cb13-15" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb13-16"><a href="#cb13-16" tabindex="-1"></a><span class="co"># NCRMP_Tort_2014_22_diversity_site &lt;- tmp$species_diversity_site</span></span>
+<span id="cb13-17"><a href="#cb13-17" tabindex="-1"></a><span class="co"># NCRMP_Tort_2014_22_diversity_strata &lt;- tmp$diversity_strata</span></span>
+<span id="cb13-18"><a href="#cb13-18" tabindex="-1"></a><span class="co"># NCRMP_Tort_2014_22_diversity_region &lt;- tmp$Domain_est_div</span></span>
+<span id="cb13-19"><a href="#cb13-19" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb13-20"><a href="#cb13-20" tabindex="-1"></a><span class="co"># # OR add them all at once into your global environment</span></span>
+<span id="cb13-21"><a href="#cb13-21" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb13-22"><a href="#cb13-22" tabindex="-1"></a><span class="co"># list2env(tmp, envir = .GlobalEnv)</span></span></code></pre></div>
+<p>Regional species richness and diversity are calculated using the same
+weighting scheme as coral density. See NCRMP_make_weighted_demo_data and
+NCRMP_make_weighted_demo_data_RC for example code. Only the default
+analysis strat settings are available for species diversity. See <a href="https://cran.r-project.org/web/packages/vegan/vegan.pdf" class="uri">https://cran.r-project.org/web/packages/vegan/vegan.pdf</a>
+for more information on the diversity indices.</p>
+</div>
+<div id="ncrmp_drm_calculate_mortality" class="section level3">
+<h3>NCRMP_DRM_calculate_mortality</h3>
+<p><strong>Calculates old and recent mortality (percent of colony
+surface) from species to regional level for all sampling
+years</strong></p>
+<ul>
+<li><p>parameters:</p>
+<ul>
+<li><p>project: “NCRMP” (All regions), “NCRMP_DRM” (Florida regions
+only)</p></li>
+<li><p>region: “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”, “STX”, “PRICO”,
+“FGB”</p></li>
+<li><p>species_filter: A string indicating whether a region-specific
+preset species filter should be applied to density calculations (species
+codes in a list) or all species should be included (FALSE; the default).
+Generally not used as species-specific estimates are also provided by
+default.</p></li>
+</ul></li>
+<li><p>outputs (dataframes):</p>
+<ul>
+<li><p>old_mortality_site: site level old mortality (across all
+corals)</p></li>
+<li><p>recent_mortality_site: site level recent mortality (across all
+corals)</p></li>
+<li><p>old_mortality_strata: strata level mean old mortality
+(unweighted, across all corals)</p></li>
+<li><p>rec_mortality_strata: strata level mean recent mortality
+(unweighted, across all corals)</p></li>
+<li><p>old_mortality_species_strata: strata level mean old mortality
+(unweighted, by species)</p></li>
+<li><p>rec_mortality_species_strata: strata level mean recent mortality
+(unweighted, by species)</p></li>
+<li><p>Domain_est_old_mort: weighted regional (domain level) old
+mortality (across all species)</p></li>
+<li><p>Domain_est_rec_mort: weighted regional (domain level) recent
+mortality (across all species)</p></li>
+<li><p>Domain_est_old_mort_species: weighted regional (domain level) old
+mortality, by species. Not species-specific mortality weighting is based
+on strata where species is PRESENT</p></li>
+<li><p>Domain_est_rec_mort_species: weighted regional (domain level)
+recent mortality, by species. Not species-specific mortality weighting
+is based on strata where species is PRESENT</p></li>
+<li><p>ntot_check_rec_mort_species: QAQC check to ensure
+species-specific NTOT’s add up to 1</p></li>
+<li><p>ntot_check_old_mort_species: QAQC check to ensure
+species-specific NTOT’s add up to 1</p></li>
+</ul></li>
+</ul>
+<p>Associated functions: NCRMP_make_weighted_demo_data</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="co"># require(ncrmp.benthics.analysis)</span></span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="co"># # Run function</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="co"># tmp &lt;- NCRMP_DRM_calculate_mortality(project = &quot;NCRMP&quot;,</span></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="co">#                                       region = &quot;FGB&quot;,</span></span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="co">#                                       species_filter = &quot;FALSE&quot;)</span></span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="co"># # The function will store all of the function outputs as a list in tmp</span></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="co"># # Convert list objects to dataframes and rename</span></span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a><span class="co"># NCRMP_FGBNMS_2013_22_old_mort_site &lt;- tmp$old_mortality_site</span></span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a><span class="co"># NCRMP_FGBNMS_2013_22_rec_mort_site &lt;- tmp$recent_mortality_site</span></span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a><span class="co"># NCRMP_FGBNMS_2013_22_old_mort_strata &lt;- tmp$old_mortality_strata</span></span>
+<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a><span class="co"># NCRMP_FGBNMS_2013_22_rec_mort_strata &lt;- tmp$rec_mortality_strata</span></span>
+<span id="cb14-17"><a href="#cb14-17" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb14-18"><a href="#cb14-18" tabindex="-1"></a><span class="co"># NCRMP_FGBNMS_2013_22_old_mort_region &lt;- tmp$Domain_est_old_mort</span></span>
+<span id="cb14-19"><a href="#cb14-19" tabindex="-1"></a><span class="co"># NCRMP_FGBNMS_2013_22_rec_mort_region &lt;- tmp$Domain_est_rec_mort</span></span>
+<span id="cb14-20"><a href="#cb14-20" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb14-21"><a href="#cb14-21" tabindex="-1"></a><span class="co"># NCRMP_FGBNMS_2013_22_old_mort_species_region &lt;- tmp$Domain_est_old_mort_species</span></span>
+<span id="cb14-22"><a href="#cb14-22" tabindex="-1"></a><span class="co"># NCRMP_FGBNMS_2013_22_rec_mort_species_region &lt;- tmp$Domain_est_rec_mort_species</span></span>
+<span id="cb14-23"><a href="#cb14-23" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb14-24"><a href="#cb14-24" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb14-25"><a href="#cb14-25" tabindex="-1"></a><span class="co"># # check ntot weighting for species-specific mortality - should only be values of 1 (sum of weights across strata for each species in each year)</span></span>
+<span id="cb14-26"><a href="#cb14-26" tabindex="-1"></a><span class="co"># unique(tmp$ntot_check_rec_mort_species$wh_sum)</span></span>
+<span id="cb14-27"><a href="#cb14-27" tabindex="-1"></a><span class="co"># unique(tmp$ntot_check_old_mort_species$wh_sum)</span></span></code></pre></div>
+<p>Regional old and recent mortality are calculated using the same
+weighting scheme as coral density. See NCRMP_make_weighted_demo_data for
+example code. Species-specific mortality estimates are done based on
+strata a species is PRESENT. See load_NTOT_species for code.</p>
+</div>
+<div id="invertebrate-density" class="section level2">
+<h2>Invertebrate density</h2>
+<div id="ncrmp_calculate_invert_density" class="section level3">
+<h3>NCRMP_calculate_invert_density</h3>
+<p><strong>Calculates <em>Diadema antillarum</em> density from site to
+regional level for all sampling years</strong></p>
+<ul>
+<li><p>parameters:</p>
+<ul>
+<li><p>region: “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”, “STX”, “PRICO”,
+“FGB”</p></li>
+<li><p>project: “NCRMP” (default) or “MIR” (in development)</p></li>
+</ul></li>
+<li><p>outputs (dataframes):</p>
+<ul>
+<li><p>diadema_density_site: site level Diadema density</p></li>
+<li><p>invert_strata: strata level mean Diadema density
+(unweighted)</p></li>
+<li><p>Domain_est: weighted regional (domain level) Diadema
+density</p></li>
+</ul></li>
+</ul>
+<p>Associated functions: NCRMP_make_weighted_invert_density</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="co"># require(ncrmp.benthics.analysis)</span></span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="co"># # Run function </span></span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="co"># tmp &lt;- NCRMP_calculate_invert_density(region = &quot;PRICO&quot;, project = &quot;NCRMP&quot;)</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a><span class="co"># # The function will store all of the function outputs as a list in tmp</span></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co"># # Convert list objects to dataframes and rename </span></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="co"># NCRMP_PRICO_2014_21_invert_den_site &lt;- tmp$diadema_density_site</span></span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="co"># NCRMP_PRICO_2014_21_invert_den_strata &lt;- tmp$invert_strata # Right now just Diadema</span></span>
+<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="co"># NCRMP_PRICO_2014_21_invert_den_region &lt;- tmp$Domain_est</span></span></code></pre></div>
+<p>Regional <em>Diadema</em> density is calculated using the same
+weighting scheme as coral density. See
+NCRMP_make_weighted_invert_density for example code. This function is
+currently only calculating <em>Diadema</em> density. Future updates will
+include conch and lobster; but until these updates are complete, please
+see the code in this function for guidance on how to calculate density
+for the other invertebrates.</p>
+</div>
+<div id="ncrmp_calculate_invert_density-1" class="section level3">
+<h3>NCRMP_calculate_invert_density</h3>
+<p><strong>Calculates</strong> The purpose of this function is to
+calculate weighted invertebrate density data for a benthic assessment
+project. This function is used to calculate weighted strata means and
+regional estimates of invertebrate density</p>
+<ul>
+<li><p>parameters:</p>
+<ul>
+<li><p><strong>inputdata</strong>: dataframe with site level invert
+density data</p></li>
+<li><p><strong>region:</strong> “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”,
+“STX”, “PRICO”, “FGB”</p></li>
+<li><p><strong>project:</strong> “NCRMP” (default) or “MIR” (in
+development)</p></li>
+</ul></li>
+<li><p>outputs (dataframes):</p>
+<ul>
+<li><p><strong>invert_strata</strong>: Dataframe containing invertebrate
+density information for each stratum, including weighted and unweighted
+values</p></li>
+<li><p><strong>Domain_est:</strong> Dataframe containing the weighted
+regional estimates for invertebrate density, summarizing by region and
+year.</p></li>
+</ul></li>
+</ul>
+<p>Associated functions: NCRMP_calculate_invert_density</p>
+</div>
+<div id="ncrmp_drm_calculate_disease_prevalence_colonies" class="section level3">
+<h3>NCRMP_DRM_calculate_disease_prevalence_colonies</h3>
+<p><strong>Purposes:</strong> Calculates disease and bleaching
+prevalence at the site (% colonies per site), site and species (%
+colonies per site per species), strata (mean of % colonies per site),
+and regional (weighted mean of % colonies per site) level for all
+sampling years</p>
+<ul>
+<li><p>parameters:</p>
+<ul>
+<li><p>project: “NCRMP_DRM” (Florida regions only), “NCRMP” (All
+regions)</p></li>
+<li><p>region: “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”, “STX”, “PRICO”,
+“FGB”</p></li>
+<li><p>species_filter: A string indicating whether a region-specific
+preset species filter should be applied to density calculations (species
+codes in a list) or all species should be included (FALSE; the default).
+Note the species filter is not used as much as species-specific domain
+estimates are also provided.</p></li>
+</ul></li>
+<li><p>outputs (dataframes):</p>
+<ul>
+<li><p>dis_ble_prev_species: site and species level disease and
+bleaching prevalence</p></li>
+<li><p>dis_ble_prev_site: site level disease and bleaching
+prevalence</p></li>
+<li><p>dis_prev_strata: strata level disease prevalence
+(unweighted)</p></li>
+<li><p>ble_prev_strata: strata level bleaching prevalence
+(unweighted)</p></li>
+<li><p>Domain_est: weighted regional (domain level) disease and
+bleaching prevalence</p></li>
+</ul></li>
+</ul>
+<p>Associated functions: NCRMP_make_weighted_demo_data</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a></span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a><span class="co"># require(ncrmp.benthics.analysis)</span></span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a><span class="co"># # Run function </span></span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a><span class="co"># tmp &lt;- NCRMP_DRM_calculate_disease_prevalence_colonies(project = &quot;NCRMP_DRM&quot;,</span></span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a><span class="co">#                                                        region = &quot;SEFCRI&quot;,</span></span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a><span class="co">#                                                        species_filter = &quot;FALSE&quot;)</span></span>
+<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a><span class="co"># # The function will store all of the function outputs as a list in tmp</span></span>
+<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a><span class="co"># # Convert list objects to dataframes and rename </span></span>
+<span id="cb16-12"><a href="#cb16-12" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb16-13"><a href="#cb16-13" tabindex="-1"></a><span class="co"># NCRMP_DRM_SEFCRI_2014_22_dis_ble_prev_species &lt;- tmp$dis_ble_prev_species</span></span>
+<span id="cb16-14"><a href="#cb16-14" tabindex="-1"></a><span class="co"># NCRMP_DRM_SEFCRI_2014_22_dis_ble_prev_site &lt;- tmp$dis_ble_prev_site</span></span>
+<span id="cb16-15"><a href="#cb16-15" tabindex="-1"></a><span class="co"># NCRMP_DRM_SEFCRI_2014_22_dis_prev_strata &lt;- tmp$dis_prev_strata</span></span>
+<span id="cb16-16"><a href="#cb16-16" tabindex="-1"></a><span class="co"># NCRMP_DRM_SEFCRI_2014_22_ble_prev_strata &lt;- tmp$ble_prev_strata</span></span>
+<span id="cb16-17"><a href="#cb16-17" tabindex="-1"></a><span class="co"># NCRMP_DRM_SEFCRI_2014_22_dis_ble_prev_region &lt;- tmp$Domain_est</span></span></code></pre></div>
+<p>Regional disease prevalence are calculated using the same weighting
+scheme as coral density. See NCRMP_make_weighted_demo_data for example
+code.</p>
+<p>Note: Disease was not sampled in the Flower Garden Banks National
+Marine Sanctuary (FGBNMS) in 2013</p>
+</div>
+<div id="ncrmp_drm_calculate_dis_ble_prevalence_species_domain" class="section level3">
+<h3>NCRMP_DRM_calculate_dis_ble_prevalence_species_domain</h3>
+<p><strong>Purpose:</strong> Calculates disease and bleaching prevalence
+by species at the regional (weighted mean of % colonies per site) level
+for all sampling years. Note weighting is specific to the strata each
+species is present in, because disease prevalence is NA (not 0) in a
+strata where a species is absent</p>
+<ul>
+<li><p>parameters:</p>
+<ul>
+<li><p>project: “NCRMP_DRM” (Florida regions only), “NCRMP” (All
+regions)</p></li>
+<li><p>region: “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”, “STX”, “PRICO”,
+“FGB”</p></li>
+<li><p>species_filter: A string indicating whether a region-specific
+preset species filter should be applied to density calculations (species
+codes in a list) or all species should be included (FALSE; the default).
+Note the species filter is not used as much as species-specific domain
+estimates are also provided.</p></li>
+</ul></li>
+<li><p>outputs (dataframes):</p>
+<ul>
+<li><p>DomainEst_dis: weighted regional (domain level) disease
+prevalence by species</p></li>
+<li><p>DomainEst_bl: weighted regional (domain level) bleaching
+prevalence by species</p></li>
+<li><p>wh_total: QAQC check to ensure species-specific NTOT’s add up to
+1</p></li>
+</ul></li>
+</ul>
+<p>Associated functions: NCRMP_make_weighted_demo_data</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a></span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a><span class="co"># require(ncrmp.benthics.analysis)</span></span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a><span class="co"># # Run function </span></span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a><span class="co"># tmp &lt;- NCRMP_DRM_calculate_dis_ble_prevalence_species_domain(project=&quot;NCRMP&quot;,</span></span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a><span class="co">#                                                              region = &quot;STX&quot;)</span></span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a><span class="co"># # ntot check - wh_total should always be 1 (sum of weights across strata for each species in each year)</span></span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a><span class="co"># unique(tmp$ntot_check$wh_total)</span></span>
+<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a><span class="co"># # The function will store all of the function outputs as a list in tmp</span></span>
+<span id="cb17-12"><a href="#cb17-12" tabindex="-1"></a><span class="co"># # Convert list objects to dataframes and rename </span></span>
+<span id="cb17-13"><a href="#cb17-13" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb17-14"><a href="#cb17-14" tabindex="-1"></a><span class="co"># NCRMP_STX_2015_21_dis_prev_species_region &lt;- tmp$DomainEst_dis</span></span>
+<span id="cb17-15"><a href="#cb17-15" tabindex="-1"></a><span class="co"># NCRMP_STX_2015_21_ble_prev_species_region &lt;- tmp$DomainEst_bl</span></span></code></pre></div>
+</div>
+<div id="ncrmp_drm_calculate_disease_prevalence_sites" class="section level3">
+<h3>NCRMP_DRM_calculate_disease_prevalence_sites</h3>
+<p><strong>Purpose:</strong> Calculates number of sites with disease and
+bleaching at the strata and regional level for all sampling years</p>
+<ul>
+<li><p>parameters:</p>
+<ul>
+<li><p>project: “NCRMP_DRM” (Florida regions only), “NCRMP” (All
+regions)</p></li>
+<li><p>region: “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”, “STX”, “PRICO”,
+“FGB”</p></li>
+<li><p>species_filter: A string indicating whether a region-specific
+preset species filter should be applied to density calculations (species
+codes in a list) or all species should be included (FALSE; the default).
+Note the species filter is not used as much as species-specific domain
+estimates are also provided.</p></li>
+</ul></li>
+<li><p>outputs (dataframes):</p>
+<ul>
+<li><p>dis_ble_prev_site: site level disease and bleaching
+presence</p></li>
+<li><p>dis_ble_prev_strata: number of sites in each strata with disease
+and bleaching</p></li>
+<li><p>disease_prev_region: number of sites across the region with
+disease and bleaching</p></li>
+</ul></li>
+</ul>
+<p>Associated functions: NCRMP_make_weighted_demo_data</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a><span class="co"># require(ncrmp.benthics.analysis)</span></span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="co"># # Run function </span></span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a><span class="co"># tmp &lt;- NCRMP_DRM_calculate_disease_prevalence_sites(project = &quot;NCRMP&quot;,</span></span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a><span class="co">#                                                     region = &quot;STTSTJ&quot;,</span></span>
+<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a><span class="co">#                                                     species_filter = &quot;FALSE&quot;)</span></span>
+<span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb18-10"><a href="#cb18-10" tabindex="-1"></a><span class="co"># # The function will store all of the function outputs as a list in tmp</span></span>
+<span id="cb18-11"><a href="#cb18-11" tabindex="-1"></a><span class="co"># # Convert list objects to dataframes and rename </span></span>
+<span id="cb18-12"><a href="#cb18-12" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb18-13"><a href="#cb18-13" tabindex="-1"></a><span class="co"># NCRMP_STTSTJ_2013_21_dis_ble_PA_site &lt;- tmp$dis_ble_prev_site</span></span>
+<span id="cb18-14"><a href="#cb18-14" tabindex="-1"></a><span class="co"># NCRMP_STTSTJ_2013_21_dis_n_sites_per_strata &lt;- tmp$dis_ble_prev_strata</span></span>
+<span id="cb18-15"><a href="#cb18-15" tabindex="-1"></a><span class="co"># NCRMP_STTSTJ_2013_21_dis_ble_n_sites_per_region &lt;- tmp$disease_prev_region</span></span></code></pre></div>
+</div>
+<div id="load_ntot" class="section level3">
+<h3>load_NTOT</h3>
+<p><strong>Purpose:</strong> process and load NTOT (Total Coral
+Population) data for specific regions and projects, calculating the
+corresponding weighting scheme for coral demographic data</p>
+<ul>
+<li><p>parameters:</p>
+<ul>
+<li><p>project: “NCRMP_DRM” (Florida regions only), “NCRMP” (All
+regions)</p></li>
+<li><p>region: “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”, “STX”, “PRICO”,
+“FGB”</p></li>
+<li><p>inputdata: dataframe containing coral demographic data,</p></li>
+</ul></li>
+<li><p>outputs (dataframes):</p>
+<ul>
+<li>ntot (dataframe): calculated weighted scheme (ntot) for the inputted
+region</li>
+</ul></li>
+</ul>
+</div>
+<div id="load_ntot_species" class="section level3">
+<h3>load_NTOT_species</h3>
+<p><strong>Purpose:</strong> loads NTOT data, calculates weighted
+demographic values for species based on their presence in different
+strata</p>
+<ul>
+<li><p>parameters:</p>
+<ul>
+<li><p>project: “NCRMP_DRM” (Florida regions only), “NCRMP” (All
+regions)</p></li>
+<li><p>region: “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”, “STX”, “PRICO”,
+“FGB”</p></li>
+<li><p>inputdata: dataframe containing stratum weights for each species,
+year, and region</p></li>
+</ul></li>
+<li><p>outputs (dataframes):</p>
+<ul>
+<li>ntot (dataframe): dataframe containing the weighted demographic data
+for species across regions and years</li>
+</ul></li>
+</ul>
+</div>
+</div>
+</div>
+<div id="functions-for-all-regions-and-years" class="section level1">
+<h1>Functions for all regions and years</h1>
+<div id="these-functions-create-outputs-that-contain-all-regions-and-all-years.-they-are-not-weighted." class="section level3">
+<h3>These functions create outputs that contain all regions and all
+years. They are not weighted.</h3>
+</div>
+<div id="esa-listed-corals---presence-absence" class="section level2">
+<h2>ESA listed corals - presence absence</h2>
+<div id="ncrmp_calculate_esa_corals_presabs" class="section level3">
+<h3>NCRMP_calculate_ESA_corals_PresAbs</h3>
+<p><strong>Purpose:</strong> Calculates strata and site level presence /
+absence for all regions and sampling years. Currently NCRMP data
+only.</p>
+<ul>
+<li><p>parameters:</p>
+<ul>
+<li>None</li>
+</ul></li>
+<li><p>outputs (dataframes):</p>
+<ul>
+<li><p>NCRMP_AllRegions_Years_ESA_PresAbs_Strat: strata level ESA
+presence/absence</p></li>
+<li><p>NCRMP_AllRegions_Years_ESA_PresAbs_Site: site level ESA
+presence/absence</p></li>
+<li><p>region_year: a list to check that every region and year is
+included</p></li>
+</ul></li>
+</ul>
+<p>Associated functions: None</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="co"># require(ncrmp.benthics.analysis)</span></span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a><span class="co"># # Run function </span></span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a><span class="co"># tmp &lt;- NCRMP_calculate_ESA_corals_PresAbs()</span></span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a><span class="co"># # The function will store all of the function outputs as a list in tmp</span></span>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a><span class="co"># # Convert list objects to dataframes and rename </span></span>
+<span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a><span class="co"># NCRMP_AllRegions_Years_ESA_PresAbs_Strat &lt;- tmp$NCRMP_AllRegions_Years_ESA_PresAbs_Strat</span></span>
+<span id="cb19-10"><a href="#cb19-10" tabindex="-1"></a><span class="co"># NCRMP_AllRegions_Years_ESA_PresAbs_Site &lt;- tmp$NCRMP_AllRegions_Years_ESA_PresAbs_Site</span></span>
+<span id="cb19-11"><a href="#cb19-11" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb19-12"><a href="#cb19-12" tabindex="-1"></a><span class="co"># region_year &lt;- tmp$region_year</span></span></code></pre></div>
+</div>
+<div id="ncrmp_make_esa_corals_foi" class="section level3">
+<h3>NCRMP_make_ESA_corals_FOI</h3>
+<p><strong>Purpose:</strong> Calculates regional ESA frequency of
+incidence, across all ESA species and for each, for all regions and
+sampling years based on the number of sites ESA are present. Currently
+NCRMP data only.</p>
+<ul>
+<li><p>parameters:</p>
+<ul>
+<li>None</li>
+</ul></li>
+<li><p>outputs (dataframes):</p>
+<ul>
+<li><p>FOI_region: regional frequency of incidence across all ESA corals
+for all regions and years</p></li>
+<li><p>FOI_species: regional frequency of incidence of ESA corals by
+species for all regions and years</p></li>
+</ul></li>
+</ul>
+<p>Associated functions: None</p>
+<p>Example:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="co"># require(ncrmp.benthics.analysis)</span></span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a><span class="co"># # Run function </span></span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a><span class="co"># tmp &lt;- NCRMP_make_ESA_corals_FOI()</span></span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a><span class="co"># # The function will store all of the function outputs as a list in tmp</span></span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a><span class="co"># # Convert list objects to dataframes and rename </span></span>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a><span class="co"># NCRMP_ESA_FOI_region &lt;- tmp$FOI_region</span></span>
+<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a><span class="co"># NCRMP_ESA_FOI_species &lt;- tmp$FOI_species</span></span></code></pre></div>
+</div>
+</div>
+<div id="bleaching-abundance" class="section level2">
+<h2>Bleaching abundance</h2>
+<div id="ncrmp_make_bleaching_abundance" class="section level3">
+<h3>NCRMP_make_bleaching_abundance</h3>
+<p><strong>Purpose:</strong> Calculates species level bleaching
+abundance by each transect for all regions and sampling years. Currently
+NCRMP data only</p>
+<ul>
+<li><p>parameters:</p>
+<ul>
+<li>None</li>
+</ul></li>
+<li><p>outputs (dataframes):</p>
+<ul>
+<li>NCRMP_bleaching_abundance_Allyears_Allregions: species level
+bleaching abundance for each transect</li>
+</ul></li>
+</ul>
+<p>Example:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="co"># require(ncrmp.benthics.analysis)</span></span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a><span class="co"># # Run function </span></span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a><span class="co"># tmp &lt;- NCRMP_make_bleaching_abundance()</span></span>
+<span id="cb21-6"><a href="#cb21-6" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb21-7"><a href="#cb21-7" tabindex="-1"></a><span class="co"># # The function will store all of the function outputs as a list in tmp</span></span>
+<span id="cb21-8"><a href="#cb21-8" tabindex="-1"></a><span class="co"># # Convert list objects to dataframes and rename </span></span>
+<span id="cb21-9"><a href="#cb21-9" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb21-10"><a href="#cb21-10" tabindex="-1"></a><span class="co"># NCRMP_bleaching_abundance_Allyears_Allregions &lt;- tmp$NCRMP_bleaching_abundance_Allyears_Allregions</span></span></code></pre></div>
+</div>
+</div>
+<div id="section" class="section level2">
+<h2></h2>
+</div>
+<div id="new-functions" class="section level2">
+<h2>New Functions</h2>
+<div id="update_flk_protection_status" class="section level3">
+<h3>Update_FLK_Protection_Status</h3>
+<p><strong>Purpose:</strong> updates the protection status (PROT) in FLK
+dataset by merging it with a reference grid (grid_df)</p>
+<ul>
+<li><p>parameters:</p>
+<ul>
+<li>data</li>
+<li>grid_df</li>
+</ul></li>
+<li><p>outputs (dataframes):</p>
+<ul>
+<li>updated dataframe</li>
+</ul></li>
+</ul>
+<p>Associated Functions: load_NCRMP_DRM_demo_data</p>
+</div>
+<div id="gam_function" class="section level3">
+<h3>GAM_function</h3>
+<p><strong>Purpose:</strong> Designed to fit a Generalized Additive
+Model (GAM) to dataset, assess its statistical significance, and perform
+model diagnostics</p>
+<ul>
+<li><p>parameters:</p>
+<ul>
+<li><p>dataset with the associated variable</p></li>
+<li><p>response: the dependent variable (must be a column in
+data)</p></li>
+<li><p>group_var (optional): a grouping variable for subsetting the
+data</p></li>
+<li><p>group_names (optional): a subset of group levels to include (ex:
+Macroalgae and Hard Coral)</p></li>
+<li><p>kvalue: the smoothing parameter (k) that controls the flexibility
+(default = 3)</p></li>
+</ul></li>
+<li><p>outputs (dataframes):</p>
+<ul>
+<li><p>Model summary: list with key statistics and diagnostic
+results</p></li>
+<li><p>diagnostic plots: histogram of residuals, Q-Q plot to check for
+normality, residuals vs fitted values plot for homoscedasticity
+check</p></li>
+</ul>
+<p>Associated Functions: Tech Memo Rmd</p></li>
+</ul>
+</div>
+<div id="gam_function-1" class="section level3">
+<h3>GAM_function</h3>
+<p><strong>Purpose:</strong> Desi</p>
+<ul>
+<li><p>parameters: data</p></li>
+<li><p>outputs (dataframes):</p>
+<p>Associated Functions:</p></li>
+</ul>
+<hr />
+</div>
+</div>
+</div>
+<div id="frequently-asked-questions" class="section level1">
+<h1>Frequently asked questions:</h1>
+<div id="what-species-are-used-when-you-filter-the-species-in-ncrmp_drm_calculate_colony_density-ncrmp_drm_calculate_disease_prevalence-or-ncrmp_drm_calculate_mortality" class="section level3">
+<h3>1. What species are used when you filter the species in
+NCRMP_DRM_calculate_colony_density,
+NCRMP_DRM_calculate_disease_prevalence or
+NCRMP_DRM_calculate_mortality?</h3>
+<p>NCRMP species filter developed in status report meetings</p>
+<p>Report_card_filter &lt;- c(“ACR CERV”, “ACR PALM”, “COL NATA”, “DIP
+LABY”, “MON CAVE”, “ORB ANNU”, “ORB FRAN”, “ORB FAVE”, “POR PORI”, “PSE
+STRI”, “PSE CLIV”, “SID SIDE”, “STE INTE”)</p>
+</div>
+<div id="which-benthic-categories-are-combined-into-other-in-ncrmp_calculate_cover" class="section level3">
+<h3>2. Which benthic categories are combined into “OTHER” in
+NCRMP_calculate_cover?</h3>
+<p>The following major benthic categories are currently classified as
+OTHER in the benthic cover metrics: SUBSTRATE, HYDROCORALS, OTHER
+INVERTEBRATES, CYANOBACTERIA, and SEAGRASS. Please see
+ncrmp_frrp_sppcodes, which is contained in the package, for information
+on how taxa are categorized into major benthic categories.</p>
+</div>
+</div>
+<div id="disclaimer" class="section level1">
+<h1>Disclaimer</h1>
+<p>This repository is a scientific product and is not official
+communication of the National Oceanic and Atmospheric Administration, or
+the United States Department of Commerce. All NOAA GitHub project code
+is provided on an ‘as is’ basis and the user assumes responsibility for
+its use. Any claims against the Department of Commerce or Department of
+Commerce bureaus stemming from the use of this GitHub project will be
+governed by all applicable Federal law. Any reference to specific
+commercial products, processes, or services by service mark, trademark,
+manufacturer, or otherwise, does not constitute or imply their
+endorsement, recommendation or favoring by the Department of Commerce.
+The Department of Commerce seal and logo, or the seal and logo of a DOC
+bureau, shall not be used in any manner to imply endorsement of any
+commercial product or activity by DOC or the United States
+Government.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
