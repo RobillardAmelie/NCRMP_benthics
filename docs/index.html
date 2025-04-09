@@ -376,15 +376,20 @@ this package</a></li>
 <li><a href="#functions-for-specific-regions" id="toc-functions-for-specific-regions">Functions for specific
 regions</a>
 <ul>
-<li><a href="#invertebrate-density" id="toc-invertebrate-density">Invertebrate density</a></li>
+<li><a href="#density" id="toc-density">Density</a></li>
+<li><a href="#general-demographic-data" id="toc-general-demographic-data">General Demographic Data</a></li>
+<li><a href="#richness" id="toc-richness">Richness</a></li>
+<li><a href="#mortality" id="toc-mortality">Mortality</a></li>
+<li><a href="#invertebrates" id="toc-invertebrates">Invertebrates</a></li>
+<li><a href="#disease" id="toc-disease">Disease</a></li>
+<li><a href="#ntot" id="toc-ntot">NTOT</a></li>
 </ul></li>
 <li><a href="#functions-for-all-regions-and-years" id="toc-functions-for-all-regions-and-years">Functions for all regions
 and years</a>
 <ul>
 <li><a href="#esa-listed-corals---presence-absence" id="toc-esa-listed-corals---presence-absence">ESA listed corals -
 presence absence</a></li>
-<li><a href="#bleaching-abundance" id="toc-bleaching-abundance">Bleaching abundance</a></li>
-<li><a href="#section" id="toc-section"></a></li>
+<li><a href="#bleaching-abundance" id="toc-bleaching-abundance">Bleaching Abundance</a></li>
 <li><a href="#new-functions" id="toc-new-functions">New
 Functions</a></li>
 </ul></li>
@@ -730,9 +735,7 @@ package are welcome.</p>
 single year or multiple sampling years. They apply a stratified random
 sampling weighting scheme to compute metrics at the regional (sampling
 domain) level.</p>
-<div id="benthic-cover" class="section level6">
-<h6>Benthic cover</h6>
-</div>
+<p>##Cover</p>
 <div id="ncrmp_calculate_cover" class="section level3">
 <h3>NCRMP_calculate_cover</h3>
 <p><strong>Purpose:</strong> Calculates percent cover from species to
@@ -832,6 +835,29 @@ development.</p></li>
 <li>outputs (dataframes):
 <ul>
 <li>dat (dataframe): containing the combined benthic cover data</li>
+</ul></li>
+</ul>
+</div>
+<div id="ncrmp_make_weighted_species_coral_cover_data" class="section level3">
+<h3>NCRMP_make_weighted_species_coral_cover_data</h3>
+<p><strong>Purpose: C</strong>alculates weighted mean density and
+coefficient of variation (CV) for coral cover data by species</p>
+<ul>
+<li><p>Inputs</p>
+<ul>
+<li><p>project: “NCRMP_DRM” (Florida regions only), “NCRMP” (All
+regions)</p></li>
+<li><p>region: “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”, “STX”, “PRICO”,
+“FGB”</p></li>
+<li><p>sppcvr (dataframe): dataframe containing site- and species-level
+percent cover data</p></li>
+</ul></li>
+<li><p>Outputs:</p>
+<ul>
+<li><p>region_means (dataframe): regional weighted mean cover by coral
+species</p></li>
+<li><p>strata_means (dataframe): dataframe with strata-specific mean
+cover for coral species,</p></li>
 </ul></li>
 </ul>
 </div>
@@ -961,6 +987,8 @@ you provide there will be automatically passed on.</p>
 #
 </code></pre>
 </div>
+<div id="density" class="section level2">
+<h2>Density</h2>
 <div id="ncrmp_drm_calculate_colony_density" class="section level3">
 <h3>NCRMP_DRM_calculate_colony_density</h3>
 <p><strong>Purpose: Calculates colony density from site to regional
@@ -1084,6 +1112,9 @@ data</p></li>
 </ul></li>
 </ul>
 </div>
+</div>
+<div id="general-demographic-data" class="section level2">
+<h2>General Demographic Data</h2>
 <div id="ncrmp_make_weighted_demo_data" class="section level3">
 <h3>NCRMP_make_weighted_demo_data</h3>
 <p><strong>Applies weighting scheme to coral demographic data (coral
@@ -1195,29 +1226,9 @@ on.</p>
 #                    ngrtot = sum(NTOT) )
 </code></pre>
 </div>
-<div id="ncrmp_make_weighted_species_coral_cover_data" class="section level3">
-<h3>NCRMP_make_weighted_species_coral_cover_data</h3>
-<p><strong>Purpose: C</strong>alculates weighted mean density and
-coefficient of variation (CV) for coral cover data by species</p>
-<ul>
-<li><p>Inputs</p>
-<ul>
-<li><p>project: “NCRMP_DRM” (Florida regions only), “NCRMP” (All
-regions)</p></li>
-<li><p>region: “SEFCRI”, “FLK”, “Tortugas”, “STTSTJ”, “STX”, “PRICO”,
-“FGB”</p></li>
-<li><p>sppcvr (dataframe): dataframe containing site- and species-level
-percent cover data</p></li>
-</ul></li>
-<li><p>Outputs:</p>
-<ul>
-<li><p>region_means (dataframe): regional weighted mean cover by coral
-species</p></li>
-<li><p>strata_means (dataframe): dataframe with strata-specific mean
-cover for coral species,</p></li>
-</ul></li>
-</ul>
 </div>
+<div id="richness" class="section level2">
+<h2>Richness</h2>
 <div id="ncrmp_drm_calculate_species_richness_diversity" class="section level3">
 <h3>NCRMP_DRM_calculate_species_richness_diversity</h3>
 <p>Calculates species richness from site to regional level for all
@@ -1291,6 +1302,9 @@ NCRMP_make_weighted_demo_data_RC for example code. Only the default
 analysis strat settings are available for species diversity. See <a href="https://cran.r-project.org/web/packages/vegan/vegan.pdf" class="uri">https://cran.r-project.org/web/packages/vegan/vegan.pdf</a>
 for more information on the diversity indices.</p>
 </div>
+</div>
+<div id="mortality" class="section level2">
+<h2>Mortality</h2>
 <div id="ncrmp_drm_calculate_mortality" class="section level3">
 <h3>NCRMP_DRM_calculate_mortality</h3>
 <p><strong>Calculates old and recent mortality (percent of colony
@@ -1374,8 +1388,9 @@ weighting scheme as coral density. See NCRMP_make_weighted_demo_data for
 example code. Species-specific mortality estimates are done based on
 strata a species is PRESENT. See load_NTOT_species for code.</p>
 </div>
-<div id="invertebrate-density" class="section level2">
-<h2>Invertebrate density</h2>
+</div>
+<div id="invertebrates" class="section level2">
+<h2>Invertebrates</h2>
 <div id="ncrmp_calculate_invert_density" class="section level3">
 <h3>NCRMP_calculate_invert_density</h3>
 <p><strong>Calculates <em>Diadema antillarum</em> density from site to
@@ -1448,6 +1463,9 @@ year.</p></li>
 </ul>
 <p>Associated functions: NCRMP_calculate_invert_density</p>
 </div>
+</div>
+<div id="disease" class="section level2">
+<h2>Disease</h2>
 <div id="ncrmp_drm_calculate_disease_prevalence_colonies" class="section level3">
 <h3>NCRMP_DRM_calculate_disease_prevalence_colonies</h3>
 <p><strong>Purposes:</strong> Calculates disease and bleaching
@@ -1603,6 +1621,9 @@ disease and bleaching</p></li>
 # NCRMP_STTSTJ_2013_21_dis_ble_n_sites_per_region &lt;- tmp$disease_prev_region
 </code></pre>
 </div>
+</div>
+<div id="ntot" class="section level2">
+<h2>NTOT</h2>
 <div id="load_ntot" class="section level3">
 <h3>load_NTOT</h3>
 <p><strong>Purpose:</strong> process and load NTOT (Total Coral
@@ -1726,7 +1747,7 @@ species for all regions and years</p></li>
 </div>
 </div>
 <div id="bleaching-abundance" class="section level2">
-<h2>Bleaching abundance</h2>
+<h2>Bleaching Abundance</h2>
 <div id="ncrmp_make_bleaching_abundance" class="section level3">
 <h3>NCRMP_make_bleaching_abundance</h3>
 <p><strong>Purpose:</strong> Calculates species level bleaching
@@ -1756,9 +1777,6 @@ bleaching abundance for each transect</li>
 # NCRMP_bleaching_abundance_Allyears_Allregions &lt;- tmp$NCRMP_bleaching_abundance_Allyears_Allregions
 </code></pre>
 </div>
-</div>
-<div id="section" class="section level2">
-<h2></h2>
 </div>
 <div id="new-functions" class="section level2">
 <h2>New Functions</h2>
