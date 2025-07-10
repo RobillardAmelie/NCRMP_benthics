@@ -55,11 +55,21 @@
 NCRMP_DRM_calculate_disease_prevalence_colonies <- function(project, region, species_filter = "NULL"){
 
   ####prep data####
-  # Load data
   tmp <- load_NCRMP_DRM_demo_data(project = project, region = region, species_filter = species_filter)
-  #unpack list
   list2env(tmp, envir = environment())
 
+  ####Helper Function: ensure correct disease coding ####
+  
+  code_disease <- function(data){
+    data %>% mutate(DISEASE = case_when(
+          DISEASE == "absent" ~ "A",
+          DISEASE == "fast" ~ "F",
+          DISEASE == "slow" ~ "S",
+          DISEASE == "present" ~ "P",
+          TRUE ~ DISEASE  ) )
+  }
+  
+  
   ####Helper Function: clean data, no disease na####
   FL_dis_NA <- function(data){
     data %>% dplyr::filter(N == 1,
@@ -134,7 +144,7 @@ NCRMP_DRM_calculate_disease_prevalence_colonies <- function(project, region, spe
       sum_disease_bleaching() %>%
       format_dis_ble_prev()
 
-
+ 
     dis_species_1stage <- dat_1stage %>%
       FL_dis_NA() %>%
       dplyr::filter(!(is.na(DISEASE))) %>%
@@ -147,6 +157,7 @@ NCRMP_DRM_calculate_disease_prevalence_colonies <- function(project, region, spe
 
 
     dat1_2stage <- dat_2stage %>%
+      code_disease() %>%
       FL_dis_NA() %>%
       process_data(include_PL = TRUE) %>%
       dplyr::group_by(SURVEY, REGION, YEAR, SUB_REGION_NAME, PRIMARY_SAMPLE_UNIT, STATION_NR, LAT_DEGREES, LON_DEGREES, STRAT, HABITAT_CD, PROT) %>%
@@ -156,6 +167,7 @@ NCRMP_DRM_calculate_disease_prevalence_colonies <- function(project, region, spe
       format_dis_ble_prev()
 
     dis_species_2stage <- dat_2stage %>%
+      code_disease() %>%
       FL_dis_NA() %>%
       mutate_formatting() %>%
       process_data(include_PL = FALSE) %>%
@@ -208,3 +220,4 @@ NCRMP_DRM_calculate_disease_prevalence_colonies <- function(project, region, spe
 
   return(output)
 }
+

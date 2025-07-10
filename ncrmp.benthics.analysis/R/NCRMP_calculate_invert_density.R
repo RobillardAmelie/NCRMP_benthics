@@ -49,12 +49,10 @@
 NCRMP_calculate_invert_density <- function(region, project = "NULL") {
 
   ####Load in Data####
-
   if(region == "SEFCRI"){
     dat_2stage <- SEFCRI_2014_2stage_inverts_ESAcorals
-    dat_1stage <- dplyr::bind_rows(SEFCRI_2016_inverts_ESAcorals, SEFCRI_2018_inverts_ESAcorals, SEFCRI_2020_inverts_ESAcorals %>% dplyr::mutate(YEAR = 2020), SEFCRI_2022_inverts_ESAcorals)
+    dat_1stage <- dplyr::bind_rows(SEFCRI_2016_inverts_ESAcorals, SEFCRI_2018_inverts_ESAcorals, SEFCRI_2020_inverts_ESAcorals %>% dplyr::mutate(YEAR = 2020), SEFCRI_2022_inverts_ESAcorals, SEFCRI_2024_inverts_ESAcorals)
   }
-
 
   # FLK
   if(region == "FLK"){
@@ -64,7 +62,7 @@ NCRMP_calculate_invert_density <- function(region, project = "NULL") {
       dplyr::mutate(YEAR = 2014)
 
     #list of datasets besides 2022
-    datasets <- list(FLK_2016_inverts_ESAcorals,  FLK_2018_inverts_ESAcorals, FLK_2020_inverts_ESAcorals %>% dplyr::mutate(YEAR = 2020))
+    datasets <- list(FLK_2016_inverts_ESAcorals,  FLK_2018_inverts_ESAcorals, FLK_2020_inverts_ESAcorals %>% dplyr::mutate(YEAR = 2020), FLK_2024_inverts_ESAcorals)
     #update 2022
     updated_2022 <-  update_protection_status(FLK_2022_inverts_ESAcorals, FLK_2020_sample_frame@data)
     #bind rows
@@ -95,13 +93,13 @@ NCRMP_calculate_invert_density <- function(region, project = "NULL") {
                       TortugasMarq_2016_inverts_ESAcorals,
                       Tortugas_2020_inverts_ESAcorals %>% dplyr::mutate(YEAR = 2020) %>%
                         dplyr::mutate(STRAT = dplyr::case_when(STRAT == "T08" & PROT == 2 ~ 'T09', TRUE ~ as.character(STRAT))),
-                      Tortugas_2022_inverts_ESAcorals)
+                      Tortugas_2022_inverts_ESAcorals, 
+                      Tortugas_2024_inverts_ESAcorals)
 
-    two_stage <- Tortugas_2018_inverts_ESAcorals
+    dat_2stage <- Tortugas_2018_inverts_ESAcorals
 
     dat_1stage <- dplyr::bind_rows(one_stage)
 
-    dat_2stage <- two_stage
   } #end tortugas
 
   # St. Thomas & St. John
@@ -170,8 +168,6 @@ NCRMP_calculate_invert_density <- function(region, project = "NULL") {
 
 
   ####Take the transect means (Account for SEFCRI/FLK 2014 2 stage data)####
-
-
   clean_data <- function(data) {
     # Remove Marquesas
     data %>% dplyr::filter(SUB_REGION_NAME != "Marquesas",
@@ -193,10 +189,7 @@ NCRMP_calculate_invert_density <- function(region, project = "NULL") {
                                                            TRUE ~ DIADEMA_NUM/(25 * 2) ))
   }
 
-  if(project == "NCRMP" && region == "SEFCRI" ||
-     project == "NCRMP" && region == "FLK" ||
-     project == "NCRMP" && region == "Tortugas") {
-
+  if(project == "NCRMP" && region == "SEFCRI" || project == "NCRMP" && region == "FLK" ||  project == "NCRMP" && region == "Tortugas") {
 
     dat1_1stage <- dat_1stage %>%
       clean_data() %>%
@@ -207,7 +200,6 @@ NCRMP_calculate_invert_density <- function(region, project = "NULL") {
       dplyr::select(YEAR, MONTH, DAY, REGION, SUB_REGION_NAME, PRIMARY_SAMPLE_UNIT, LAT_DEGREES, LON_DEGREES,
                       MIN_DEPTH, MAX_DEPTH, STRAT, PROT, LOBSTER_NUM, CONCH_NUM, DIADEMA_NUM, Diadema_dens)
 
-
     dat1_2stage <- dat_2stage %>%
       clean_data() %>%
       # could expand here to include lobster and conch density
@@ -216,8 +208,6 @@ NCRMP_calculate_invert_density <- function(region, project = "NULL") {
                                                     REGION == "SEFCRI" ~ DIADEMA_NUM/(15 * 2),
                                                     REGION == "Tortugas" ~ DIADEMA_NUM/(15 * 2),
                                                     TRUE ~ DIADEMA_NUM/(25 * 2) )) %>%
-
-
       # Calculate site density by taking the mean of 2 transects
       dplyr::group_by(YEAR, MONTH, DAY, REGION, SUB_REGION_NAME, PRIMARY_SAMPLE_UNIT, LAT_DEGREES, LON_DEGREES,
                       STRAT, PROT) %>%
@@ -227,12 +217,10 @@ NCRMP_calculate_invert_density <- function(region, project = "NULL") {
                        CONCH_NUM = mean(CONCH_NUM, na.rm=T),
                        DIADEMA_NUM = mean(DIADEMA_NUM, na.rm=T),
                        Diadema_dens = mean(Diadema_dens, na.rm=T))
-
+    
     diadema_density_site <- dplyr::bind_rows(dat1_1stage, dat1_2stage)
 
-
   } else {
-
     diadema_density_site <- dat_1stage %>%
       filter(DIADEMA_NUM != "NA") %>%
       clean_data() %>%
@@ -242,14 +230,13 @@ NCRMP_calculate_invert_density <- function(region, project = "NULL") {
       # drop columns
       dplyr::select(YEAR, MONTH, DAY, REGION, SUB_REGION_NAME, PRIMARY_SAMPLE_UNIT, LAT_DEGREES, LON_DEGREES,
                       MIN_DEPTH, MAX_DEPTH, STRAT, PROT, LOBSTER_NUM, CONCH_NUM, DIADEMA_NUM, Diadema_dens)
+    
   }
 
   # call function for weighting
   tmp <- NCRMP_make_weighted_invert_density_data(inputdata = diadema_density_site, region, project)
-
-  # unpack list
   list2env(tmp, envir = .GlobalEnv)
-
+  
   ####Export####
   output <- list(
     "diadema_density_site" = diadema_density_site,

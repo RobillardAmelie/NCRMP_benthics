@@ -64,17 +64,17 @@ NCRMP_DRM_colony_density_CV_and_occurrence <- function(region, ptitle, year, fil
   #based on region and project
   sppdens <- switch(region,
                     "FLK" = switch(project,
-                                   "NCRMP" = NCRMP_FLK_2014_22_density_species,
+                                   "NCRMP" = NCRMP_FLK_2014_24_density_species,
                                    "MIR" = MIR_2022_density_species_DUMMY,
-                                   "NCRMP_DRM" = NCRMP_DRM_FLK_2014_22_density_species,
+                                   "NCRMP_DRM" = NCRMP_DRM_FLK_2014_24_density_species,
                                    stop("Unknown project for FLK")),
                     "Tortugas" = switch(project,
-                                    "NCRMP_DRM" = NCRMP_DRM_Tort_2014_22_density_species,
-                                    "NCRMP" = NCRMP_Tort_2014_22_density_species,
+                                    "NCRMP_DRM" = NCRMP_DRM_Tort_2014_24_density_species,
+                                    "NCRMP" = NCRMP_Tort_2014_24_density_species,
                                     stop("Unknown project for Tortugas")),
                     "SEFCRI" = switch(project,
-                                      "NCRMP" = NCRMP_SEFCRI_2014_22_density_species,
-                                      "NCRMP_DRM" = NCRMP_DRM_SEFCRI_2014_22_density_species,
+                                      "NCRMP" = NCRMP_SEFCRI_2014_24_density_species,
+                                      "NCRMP_DRM" = NCRMP_DRM_SEFCRI_2014_24_density_species,
                                       stop("Unknown project for SEFCRI")),
                     "PRICO" = NCRMP_PRICO_2014_23_density_species,
                     "STTSTJ" = NCRMP_STTSTJ_2013_23_density_species,
@@ -86,12 +86,13 @@ NCRMP_DRM_colony_density_CV_and_occurrence <- function(region, ptitle, year, fil
   #call NCRMP_make_weighted_density_CV_data function to get region means
   region_means <- NCRMP_make_weighted_density_CV_data(region = region, sppdens = sppdens, project = project)
 
+
   #filter species if user adds a species filter
   if (species_filter == TRUE) {
     region_means <- region_means %>% dplyr::filter(SPECIES_CD %in% coral_species_by_region)
   }
 
-  region_means <- region_means %>% filter(YEAR == year)
+  region_means <- region_means 
 
     plot <- function(region_means, set_occurrence, year, ptitle) {
       g.mid <- region_means %>%

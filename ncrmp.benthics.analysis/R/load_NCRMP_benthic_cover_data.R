@@ -40,15 +40,6 @@
 
 load_NCRMP_benthic_cover_data <- function(project = "NULL", region) {
   
-  #### Ensure Valid Inputs ####
-  if (!project %in% c("NULL", "NCRMP", "MIR")) {
-    stop("Invalid project value")
-  }
-  
-  if (!region %in% c("SEFCRI", "FLK", "Tortugas", "STTSTJ", "STX", "PRICO", "FGB")) {
-    stop("Invalid region value")
-  }
-  
   ####Recode species####
   recode_and_clean_species <- function(data) {
     if ("COVER_CAT_NAME" %in% colnames(data)) {
@@ -58,6 +49,7 @@ load_NCRMP_benthic_cover_data <- function(project = "NULL", region) {
             COVER_CAT_NAME == "Erythropodium caribaeorum" ~ "Encrusting gorgonian",
             COVER_CAT_NAME == "Diploria spp." ~ "Diploria spp",
             COVER_CAT_NAME == "Cladocora abruscula" ~ "Cladocora arbuscula",
+            COVER_CAT_CD == "MAD MIRA" ~ "Madracis auretenra",
             TRUE ~ COVER_CAT_NAME
           ),
           COVER_CAT_CD = dplyr::case_when(
@@ -72,8 +64,8 @@ load_NCRMP_benthic_cover_data <- function(project = "NULL", region) {
     }
     return(data)
   }
-  
-  
+
+            
   #### Data Processing Mission Iconic Reef ####
   if (project == "MIR") {
     
@@ -91,7 +83,7 @@ load_NCRMP_benthic_cover_data <- function(project = "NULL", region) {
   
   #### Data Processing Southeast Florida NCRMP/Null Project ####
   if ((project == "NCRMP" || project == "NULL") && region == "SEFCRI") {
-    # Optionally, check for missing values (these lines simply return TRUE/FALSE)
+    
     any(is.na(SEFCRI_2014_2stage_benthic_cover$PRIMARY_SAMPLE_UNIT))
     any(is.na(SEFCRI_2014_2stage_benthic_cover$STATION_NR))
     
@@ -109,7 +101,8 @@ load_NCRMP_benthic_cover_data <- function(project = "NULL", region) {
             TRUE ~ as.character(STRAT)
           )
         ),
-      SEFCRI_2022_benthic_cover
+      SEFCRI_2022_benthic_cover,
+      SEFCRI_2024_benthic_cover
     )
     
     dat <- dplyr::bind_rows(datasets) %>%
@@ -119,7 +112,7 @@ load_NCRMP_benthic_cover_data <- function(project = "NULL", region) {
   
   #### Data Processing Florida Keys NCRMP/Null Project ####
   if ((project == "NCRMP" || project == "NULL") && region == "FLK") {
-    
+
     datasets <- list(
       FLK_2014_2stage_benthic_cover %>% dplyr::mutate(YEAR = 2014),
       FLK_2016_benthic_cover %>%
@@ -127,9 +120,10 @@ load_NCRMP_benthic_cover_data <- function(project = "NULL", region) {
         dplyr::filter(!is.na(COVER_CAT_CD)),
       FLK_2018_benthic_cover,
       FLK_2020_benthic_cover %>% dplyr::mutate(YEAR = 2020),
-      FLK_2022_benthic_cover %>% update_protection_status(grid_df = FLK_2020_sample_frame@data)
+      FLK_2022_benthic_cover %>% update_protection_status(grid_df = FLK_2020_sample_frame@data),
+      FLK_2024_benthic_cover
     )
-    
+
     dat <- dplyr::bind_rows(datasets) %>%
       recode_and_clean_species()  %>%
       dplyr::mutate(PROT = as.factor(0),
@@ -152,9 +146,11 @@ load_NCRMP_benthic_cover_data <- function(project = "NULL", region) {
             TRUE ~ as.character(STRAT)
           )
         ),
-      Tortugas_2022_benthic_cover
+      Tortugas_2022_benthic_cover,
+      Tortugas_2024_benthic_cover
     )
     
+  
     dat <- dplyr::bind_rows(datasets) %>%
       dplyr::filter(
         SUB_REGION_NAME != "Marquesas",

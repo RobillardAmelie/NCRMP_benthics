@@ -24,7 +24,7 @@
 #
 
 # NCRMP Caribbean Benthic analytics team: Groves, Viehman, Williams
-# Last update: Jan 2023
+# Last update: Jun 2025
 
 ##############################################################################################################################
 
@@ -53,19 +53,18 @@ NCRMP_calculate_ESA_corals_PresAbs <- function() {
   change_analysis_strat <- function(data){
     data %>% dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " "))
   }
-
-  # Load analysis ready data from package
   
-  # SEFCRI
+  ####   SEFCRI   ####  
   sefcri_datasets <- list(
     change_analysis_strat(SEFCRI_2014_2stage_inverts_ESAcorals),
     change_analysis_strat(SEFCRI_2016_inverts_ESAcorals),
     change_analysis_strat(SEFCRI_2018_inverts_ESAcorals),
     change_analysis_strat(SEFCRI_2020_inverts_ESAcorals),
-    change_analysis_strat(SEFCRI_2022_inverts_ESAcorals)
+    change_analysis_strat(SEFCRI_2022_inverts_ESAcorals),
+    change_analysis_strat(SEFCRI_2024_inverts_ESAcorals)
   )
 
-  #FLK
+  ####  FLK   ####  
   FLK_datasets <-list(
     FLK_2014_2stage_inverts_ESAcorals %>%  dplyr::mutate(YEAR = 2014, PROT = 0) %>% change_analysis_strat(),
     FLK_2016_inverts_ESAcorals %>% dplyr::mutate(PROT = 0) %>% change_analysis_strat(),
@@ -73,12 +72,12 @@ NCRMP_calculate_ESA_corals_PresAbs <- function() {
     FLK_2020_inverts_ESAcorals %>% dplyr::mutate(PROT = 0)%>% change_analysis_strat(),
     update_protection_status(
       (change_analysis_strat(FLK_2022_inverts_ESAcorals)), FLK_2020_sample_frame@data) %>% 
-                               dplyr::mutate(PROT = 0) 
+                               dplyr::mutate(PROT = 0) ,
+    FLK_2024_inverts_ESAcorals %>% dplyr::mutate(PROT = 0)%>% change_analysis_strat()
   )
   
 
-  #  Tortugas
-
+  ####  Tortugas   ####  
   Tort_datasets <- list(
     change_analysis_strat(TortugasMarq_2014_inverts_ESAcorals) %>%
       dplyr::filter(SUB_REGION_NAME != "Marquesas",
@@ -88,7 +87,8 @@ NCRMP_calculate_ESA_corals_PresAbs <- function() {
                     SUB_REGION_NAME != "Marquesas-Tortugas Trans"),
     change_analysis_strat(Tortugas_2018_inverts_ESAcorals) %>%dplyr::select(-METERS_COMPLETED),
     change_analysis_strat(Tortugas_2020_inverts_ESAcorals) %>%dplyr::select(-METERS_COMPLETED),
-    change_analysis_strat(Tortugas_2022_inverts_ESAcorals) %>%dplyr::select(-METERS_COMPLETED)
+    change_analysis_strat(Tortugas_2022_inverts_ESAcorals) %>%dplyr::select(-METERS_COMPLETED),
+    change_analysis_strat(Tortugas_2024_inverts_ESAcorals) %>%dplyr::select(-METERS_COMPLETED)
   )
 
   ####Combine FL Datasets####

@@ -23,7 +23,7 @@
 #
 
 # NCRMP Caribbean Benthic analytics team: Groves, viehman, Williams
-# Last update: Jan 2025
+# Last update: Jul 2025
 
 
 ##############################################################################################################################
@@ -50,29 +50,36 @@
 #' @export
 #'
 #'
-#'
-NCRMP_make_weighted_LPI_data <- function(inputdata, region, project = "NULL") {
+
+NCRMP_make_weighted_LPI_data <- function(inputdata, region, project = "NULL"){
   
-  
-  # Define regional groups
+  #### Define regional groups  ####
   FL <- c("SEFCRI", "FLK", "Tortugas")
   FGB <- "FGB"
   Carib <- c("STTSTJ", "STX", "PRICO")
   
-  #####Load NTOT data####
-  ntot <- load_NTOT(region = region, inputdata = inputdata, project = project)
+  #### load ntot   #### 
+  ntot <- load_NTOT(region = region,inputdata = inputdata,project = project)
   
-  
-  
-  #####processing cover data (used by both FL and non-FL regions)####
+  ### #processing cover data (used by both FL and non-FL regions) ####
   process_cover_data <- function(data, region_is_FL = TRUE) {
     # Group data by YEAR, ANALYSIS_STRATUM, STRAT, PROT (if FL) or cover_group
+    if (region_is_FL == TRUE) {
+      grouping_vars <- c("YEAR", "ANALYSIS_STRATUM", "STRAT", "PROT", "cover_group")
+    } else {
+      grouping_vars <- c("YEAR", "ANALYSIS_STRATUM", "STRAT", "cover_group")
+    }
+    
     cover_est <- data %>%
-      dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, cover_group) %>%
+      dplyr::group_by(across(all_of(grouping_vars))) %>%
       dplyr::summarise(
-        avcvr = mean(Percent_Cvr, na.rm = TRUE),
-        svar = var(Percent_Cvr, na.rm = TRUE),
-        n = length(unique(PRIMARY_SAMPLE_UNIT)),
+        # calculate mean cover
+        avcvr = mean(Percent_Cvr),
+        # calculate stratum variance
+        svar = var(Percent_Cvr),
+        # calculate N
+        n = length(Percent_Cvr),
+        # calculate mean stratum depth
         MIN_DEPTH = mean(MIN_DEPTH, na.rm = TRUE),
         MAX_DEPTH = mean(MAX_DEPTH, na.rm = TRUE),
         DEPTH_M = (MIN_DEPTH + MAX_DEPTH) / 2
@@ -86,6 +93,15 @@ NCRMP_make_weighted_LPI_data <- function(inputdata, region, project = "NULL") {
         CV_perc = (SE / avcvr) * 100
       )
     
+    cover_est <- cover_est %>%
+      # Merge ntot with coral_est
+      dplyr::full_join(., ntot) %>%
+      # stratum estimates
+      dplyr::mutate(whavcvr = wh * avcvr,
+                    whsvar = wh^2 * Var,
+                    n = tidyr::replace_na(n, 0)) %>%
+      dplyr::filter(cover_group != "NA")
+    
     # Merge with NTOT data
     cover_est <- cover_est %>%
       dplyr::full_join(ntot) %>%
@@ -94,54 +110,49 @@ NCRMP_make_weighted_LPI_data <- function(inputdata, region, project = "NULL") {
         whavcvr = wh * avcvr,
         whsvar = wh^2 * Var,
         n = tidyr::replace_na(n, 0),
-        PROT = ifelse(region_is_FL, PROT, NA)  # Set PROT to NA for non-FL regions
+        PROT = ifelse(region_is_FL == TRUE, PROT, NA)  # Set PROT to NA for non-FL regions
       ) %>%
       dplyr::filter(cover_group != "NA")
-    
     return(cover_est)
   }
   
   #####Process Cover Data (region dependent)####
-  
-  # Process cover data for FL regions
+
   if (region %in% FL) {
     cover_est <- process_cover_data(inputdata, region_is_FL = TRUE)
   }
-  
-  
-  
-  
   #Process cover data for FGB and Caribbean regions
   if (region %in% FGB | region %in% Carib) {
     cover_est <- process_cover_data(inputdata, region_is_FL = FALSE)
   }
 
-  
-  #####Create strata means####
+  ####  strata_means   #### 
   cover_strata <- cover_est %>%
     dplyr::select(REGION, YEAR, ANALYSIS_STRATUM, STRAT, PROT, DEPTH_M, cover_group, n, avcvr, Var, SE, CV_perc) %>%
     dplyr::mutate(n = tidyr::replace_na(n, 0)) %>%
-    dplyr::mutate(CV_perc = ifelse(CV_perc == Inf, NA_real_, CV_perc))
+    # replace inf values so we can add the strata means
+    dplyr::mutate(CV_perc = case_when(CV_perc == Inf ~ NA_real_, TRUE ~ CV_perc))
   
-  ####Create domain estimates####
+  
+  ####  Domain Estimates   #### 
   Domain_est <- cover_est %>%
+    # replace inf values so we can add the strata means
+    dplyr::mutate(CV_perc = case_when(CV_perc == Inf ~ NA_real_, TRUE ~ CV_perc)) %>%
     dplyr::group_by(REGION, YEAR, cover_group) %>%
-    dplyr::summarise(
-      avCvr = sum(whavcvr, na.rm = TRUE),
-      Var = sum(whsvar, na.rm = TRUE),
-      SE = sqrt(Var),
-      CV_perc = (SE / avCvr) * 100,
-      n_sites = sum(n),
-      n_strat = length(unique(ANALYSIS_STRATUM)),
-      ngrtot = sum(NTOT)
-    ) %>%
+    dplyr::summarise(avCvr = sum(whavcvr, na.rm = T),
+                     Var = sum(whsvar, na.rm = T),
+                     SE=sqrt(Var),
+                     CV_perc=(SE/avCvr)*100,
+                     n_sites = sum(n),
+                     n_strat = length(unique(ANALYSIS_STRATUM)),
+                     ngrtot = sum(NTOT) )  %>%
     dplyr::ungroup()
   
-  #####Export results####
+  #### Export   #### 
   output <- list(
     "cover_strata" = cover_strata,
     "Domain_est" = Domain_est
   )
-  
   return(output)
 }
+

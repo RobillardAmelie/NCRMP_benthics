@@ -1,0 +1,995 @@
+---
+title: "Analysis package data export (Julia's Version)"
+author: "Julia Mateski"
+date: "March 2025"
+output: html_document
+---
+
+####Packages
+
+```{r}
+library(readr)
+library(tidyverse)
+library(magrittr)
+library(ncrmp.benthics.analysis)
+library(devtools)
+
+```
+
+
+```{r}
+region <- "Tortugas"
+project <- "NCRMP"
+species_filter <- FALSE
+start_year = 2014
+end_year = 24
+species_full_name <- full_name(region)
+
+
+
+
+fl_regions <- c("FLK", "SEFCRI", "Tortugas")
+```
+
+
+
+####File paths
+
+```{r}
+species_level_metrics <- "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Species level metrics"
+site_level_metrics <- "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics"
+strata_level_metrics <- "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics"
+domain_est <- "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates"
+
+fig_path <- "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Figures"
+CV_path <- "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV"
+
+invert <- "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Invertebrates"
+```
+
+####Get Species Full Name
+```{r}
+full_name <- function(region) {
+  
+  name <- case_when(
+  region == "SEFCRI" ~ "Southeast Florida",
+  region == "FLK" ~ "Florida Keys",
+  region == "Tortugas" ~ "Dry Tortugas",
+  region == "STX" ~"St Croix",
+  region == "STTSTJ" ~"St Thomas St Johns",
+  region == "PRICO" ~"Puerto Rico",
+  region == "FGB" ~"Flower Gardens Banks",
+  
+)
+  return(name)
+}
+```
+
+####Set Region
+
+
+####Check for N/A Function
+
+```{r}
+# check n/a part of the function 
+check_na <- function(data) {
+
+  #make an empty df
+  result <- data.frame(Column = character(), Missing_Count = numeric())
+  
+  #iterate through each column in the dataset
+  for (col_name in colnames(data)) {
+    
+    #for each column, sum number of missing obs
+    missing <- sum(is.na(data[[col_name]]))  
+    
+    #add the result to the new df
+    result <- rbind(result, data.frame(Column = col_name, Missing_Count = missing))
+  }
+  
+  return(result)
+}
+```
+
+####Prep CSV function
+
+```{r}
+prep_csv <- function(file_name, dataset, location, start_year , end_year , region , project ){
+  
+
+  if(region == "Tortugas"){ region = "Tort"}
+  
+  if(region == "GOM"){ region = "FGBNMS"}
+    
+    assign(file_name, value = dataset, envir = .GlobalEnv)
+    
+    make_data_path <- paste(paste(location, file_name, sep = "\\"), "csv", sep = ".")
+
+    write_csv(get(file_name), make_data_path)
+    final_data <- get(file_name)
+    
+    
+    data_path <- file.path(
+      "/Users/juliamateski/Documents/GitHub/NCRMP_benthics/ncrmp.benthics.analysis/data",
+      paste0(file_name, ".rda")
+    )
+    
+  save(list = file_name, file = data_path)
+  }
+```
+
+####Gather + Process Components for prep_csv function
+
+```{r}
+#the names are density_species, density_site etc etc (aka the part of the csv that is "unique")
+#[[name]] gets the list inside the dens component list (so like gets the list assigned to density_speces)
+
+prep_for_call_csv <- function(components, project){
+  
+for (name in names(components)) {
+  if(region == "Tortugas"){ region = "Tort"}
+  file_name <- paste(project, region, start_year, end_year, name, sep = "_")
+  comp <- components[[name]]
+  prep_csv(file_name, comp$data, comp$metrics, 
+           start_year = start_year, end_year = end_year, 
+           region = region, project = project)
+}
+  
+}
+
+```
+
+
+
+
+####Percent Cover - NCRMP ONLY  (GOOD )
+```{r}
+
+perc_cover <- NCRMP_calculate_cover(project = "NCRMP", region = region)
+
+lapply(perc_cover, check_na)
+#MAKE CHANGES HERE
+
+
+#unpack list
+list2env(perc_cover, envir = .GlobalEnv)
+#repack list
+perc_cover <- mget(names(perc_cover))
+
+components <- list(
+  percent_cover_species = list(data = perc_cover$percent_cover_species, metrics = species_level_metrics),
+  percent_cover_site    = list(data = perc_cover$percent_cover_site,    metrics = site_level_metrics),
+  cover_strata  = list(data = perc_cover$cover_strata,  metrics = strata_level_metrics),
+  cover_region  = list(data = perc_cover$Domain_est,  metrics = domain_est)
+)
+
+prep_for_call_csv(components, "NCRMP")
+
+```
+
+
+
+####Colony Percent Cover - Region Mean - NCRMP ONLY (GOOD)
+```{r}
+# Run function and assign names to dataframes 
+col_perc_cov <-NCRMP_colony_percent_cover(region = region,  ptitle = species_full_name,  file_path = "/Users/juliamateski/Downloads/NCRMP_benthics" )
+
+
+
+lapply(col_perc_cov, check_na)
+
+components <- list(
+  percent_cover_region_species = list(data = col_perc_cov$region_means, metrics = domain_est)
+)
+
+prep_for_call_csv(components, "NCRMP")
+
+
+```
+
+
+
+
+####Coral Density (NOT GOOD) **** GOOD IF USE OLD FUNCTION
+```{r}
+
+density_data <- NCRMP_DRM_calculate_colony_density(project = project, region = region, species_filter = species_filter)
+
+
+
+
+lapply(density_data, check_na)
+
+#MAKE CHANGES HERE
+
+#unpack list
+list2env(density_data, envir = .GlobalEnv)
+
+#repack list
+density_data <- mget(names(density_data))
+
+
+#double list
+#data
+#metrics
+components <- list(
+  density_species = list(data = density_data$density_species, metrics = species_level_metrics),
+  density_site    = list(data = density_data$density_site,    metrics = site_level_metrics),
+  density_strata  = list(data = density_data$density_strata,  metrics = strata_level_metrics),
+  density_region  = list(data = density_data$Domain_est,      metrics = domain_est)
+)
+
+prep_for_call_csv(components, project)
+
+```
+####density t test
+```{r}
+
+# density_region_df <- paste(project, region, start_year, end_year, "density_region", sep = "_") 
+# density_region_df <- get(density_region_df)
+# 
+# NCRMP_perform_ttest(dataframe = density_region_df,
+#                     metric1 = 'density',
+#                     metric2 = 'avDen',
+#                     alpha = 0.05,
+#                     #test_type = "Years",
+#                     n_years = 4, # this needs to be updated in conjunction with updating the t test function to accommodate more years
+#                     return_dataframe = FALSE)
+#   
+```
+
+
+
+#### Species richness (GOOD TO GO MAKE SURE ITS THE NEW ONE)
+***BIG PROB
+
+```{r}
+
+region = "FLK"
+project = "NCRMP_DRM"
+library(vegan)
+species_rich <- NCRMP_DRM_calculate_species_richness_diversity(project = project, region = region)
+
+tmp <- species_rich$richness_strata %>%
+  filter(!(YEAR %in% c(2023, 2024)))
+
+old <- NCRMP_FLK_2014_22_richness_strata
+all.equal(tmp, old, tolerence = 0.001)
+
+blah <- tmp %>%
+  summarise(sums = sum(Shannon, na.rm = FALSE))
+blah_2 <- tmp %>%
+  summarise(sums = sum(Shannon, na.rm = FALSE))
+all.equal(blah, blah_2)
+
+
+view(tmp)
+view(old)
+lapply(species_rich, check_na)
+
+view(species_rich$Domain_est_div)
+
+#MAKE CHANGES HERE
+
+#unpack list
+list2env(species_rich, envir = .GlobalEnv)
+
+#repack list
+species_rich <- mget(names(species_rich))
+
+components <- list(
+  richness_site = list(data = species_rich$richness_site, metrics = site_level_metrics),
+  richness_strata    = list(data = species_rich$richness_strata,    metrics = strata_level_metrics),
+  richness_region  = list(data = species_rich$Domain_est,  metrics = domain_est),
+  diversity_site  = list(data = species_rich$species_diversity_site,      metrics = site_level_metrics),
+  diversity_strata  = list(data = species_rich$diversity_strata,      metrics = strata_level_metrics),
+  diversity_region  = list(data = species_rich$Domain_est_div,      metrics = domain_est)
+)
+
+prep_for_call_csv(components, project)
+```
+
+```{r}
+# components <- list(
+#   richness_site = list(data = species_rich$richness_site, metrics = site_level_metrics),
+#   richness_strata    = list(data = species_rich$richness_strata,    metrics = strata_level_metrics),
+#   richness_region  = list(data = species_rich$Domain_est,  metrics = domain_est),
+#   diversity_site  = list(data = species_rich$species_diversity_site,      metrics = site_level_metrics),
+#   diversity_strata  = list(data = species_rich$diversity_strata,      metrics = strata_level_metrics),
+#   diversity_region  = list(data = species_rich$Domain_est_div,      metrics = domain_est)
+# )
+# 
+# 
+# for (name in names(components)) {
+#   file_name <- paste(project, region, start_year, end_year, name, sep = "_")
+#   comp <- components[[name]]
+#   prep_csv(file_name, comp$data, comp$metrics, 
+#            start_year = start_year, end_year = end_year, 
+#            region = region, project = project)
+# }
+```
+
+
+
+
+##### Mortality
+```{r}
+
+
+mort_df <- NCRMP_DRM_calculate_mortality(project = project, region = region)
+
+lapply(mort_df, check_na)
+
+#MAKE CHANGES HERE
+
+#unpack list
+list2env(mort_df, envir = .GlobalEnv)
+
+#repack list
+mort_df <- mget(names(mort_df))
+ 
+components <- list(
+  old_mort_site = list(data = mort_df$old_mortality_site, metrics = site_level_metrics),
+  rec_mort_site    = list(data = mort_df$recent_mortality_site,    metrics = site_level_metrics),
+  old_mort_strata  = list(data = mort_df$old_mortality_strata,  metrics = strata_level_metrics),
+  rec_mort_strata  = list(data = mort_df$rec_mortality_strata,      metrics = strata_level_metrics),
+  old_mort_region  = list(data = mort_df$Domain_est_old_mort,      metrics = domain_est),
+  rec_mort_region  = list(data = mort_df$Domain_est_rec_mort,      metrics = domain_est),
+  old_mort_species_region  = list(data = mort_df$Domain_est_old_mort_species,      metrics = domain_est),
+    rec_mort_species_region  = list(data = mort_df$Domain_est_rec_mort_species,      metrics = domain_est)
+)
+
+prep_for_call_csv(components, project)
+```
+
+```{r}
+  # prep_csv("old_mort_site", mort_df$old_mortality_site, site_level_metrics, start_year = start_year, end_year = end_year, region = region, project) 
+  # prep_csv("rec_mort_site", mort_df$recent_mortality_site, site_level_metrics, start_year = start_year, end_year = end_year, region = region, project)  
+  # prep_csv("old_mort_strata", mort_df$old_mortality_strata, strata_level_metrics, start_year = start_year, end_year = end_year, region = region, project) 
+  # prep_csv("rec_mort_strata", mort_df$rec_mortality_strata, strata_level_metrics, start_year = start_year, end_year = end_year, region = region, project) 
+  # prep_csv("old_mort_region", mort_df$Domain_est_old_mort, domain_est, start_year = start_year, end_year = end_year, region = region, project) 
+  # prep_csv("rec_mort_region", mort_df$Domain_est_rec_mort, site_level_metrics, start_year = start_year, end_year = end_year, region = region, project) 
+  # prep_csv("old_mort_species_region", mort_df$Domain_est_old_mort_species, strata_level_metrics, start_year = start_year, end_year = end_year, region = region, project) 
+  # prep_csv("rec_mort_species_region", mort_df$Domain_est_rec_mort_species, domain_est, start_year = start_year, end_year = end_year, region = region, project) 
+  # 
+  
+```
+
+
+
+#### Disease and bleaching - Colonies - NCRMP Only
+```{r}
+
+dis_prev_col <- NCRMP_DRM_calculate_disease_prevalence_colonies(project = project, region = region, species_filter = "FALSE")
+
+lapply(dis_prev_col, check_na)
+
+#MAKE CHANGES HERE
+
+#unpack list
+list2env(dis_prev_col, envir = .GlobalEnv)
+
+#repack list
+dis_prev_col <- mget(names(dis_prev_col))
+
+components <- list(
+  dis_ble_prev_species = list(data = dis_prev_col$dis_ble_prev_species, metrics = species_level_metrics),
+  dis_ble_prev_site    = list(data = dis_prev_col$dis_ble_prev_site,    metrics = site_level_metrics),
+  dis_prev_strata  = list(data = dis_prev_col$dis_prev_strata,  metrics = strata_level_metrics),
+  ble_prev_strata  = list(data = dis_prev_col$ble_prev_strata,      metrics = strata_level_metrics),
+  dis_ble_prev_region  = list(data = dis_prev_col$Domain_est,      metrics = domain_est)
+)
+
+prep_for_call_csv(components, project)
+
+```
+
+
+
+#### Disease and bleaching - Species Domain
+```{r}
+
+dis_ble_prev_domain <- NCRMP_DRM_calculate_dis_ble_prevalence_species_domain(project=project, region = region)
+
+
+lapply(dis_ble_prev_domain, check_na)
+
+#MAKE CHANGES HERE
+
+#unpack list
+list2env(dis_ble_prev_domain, envir = .GlobalEnv)
+
+#repack list
+dis_ble_prev_domain <- mget(names(dis_ble_prev_domain))
+
+components <- list(
+  dis_prev_species_region = list(data = dis_ble_prev_domain$DomainEst_dis, metrics = domain_est),
+  ble_prev_species_region    = list(data = dis_ble_prev_domain$DomainEst_bl,    metrics = domain_est)
+)
+
+prep_for_call_csv(components, project)
+```
+
+
+
+
+#### Disease and bleaching - Sites - GOOD TO GO
+```{r}
+
+dis_ble_prev_sites <- NCRMP_DRM_calculate_disease_prevalence_sites(project=project, region = region)
+
+lapply(dis_ble_prev_sites, check_na)
+
+#MAKE CHANGES HERE
+
+#unpack list
+list2env(dis_ble_prev_sites, envir = .GlobalEnv)
+
+#repack list
+dis_ble_prev_sites <- mget(names(dis_ble_prev_sites))
+
+components <- list(
+  dis_n_sites_per_strata = list(data = dis_ble_prev_sites$dis_ble_prev_site, metrics = strata_level_metrics),
+  dis_n_sites_per_strata    = list(data = dis_ble_prev_sites$dis_ble_prev_strata,    metrics = strata_level_metrics),
+    dis_ble_n_sites_per_region    = list(data = dis_ble_prev_sites$disease_prev_region,    metrics = domain_est)
+)
+
+prep_for_call_csv(components, project)
+
+```
+
+
+
+####Colony Size
+```{r}
+
+col_size <- NCRMP_DRM_calculate_mean_colony_size(project=project,region = region, species_filter = "FALSE")
+
+
+lapply(col_size, check_na)
+
+#MAKE CHANGES HERE
+
+
+#unpack list
+list2env(col_size, envir = .GlobalEnv)
+
+#repack list
+col_size <- mget(names(col_size))
+
+nrow(col_size$size_est_cm2_strata)
+
+if (project == "NCRMP"){
+components <- list(
+  col_size_species = list(data = col_size$size_species, metrics = species_level_metrics),
+    col_size_site    = list(data = col_size$size_site,    metrics = site_level_metrics),
+  col_size_cm2_strata    = list(data = col_size$size_est_cm2_strata,    metrics = strata_level_metrics),
+  col_size_cm3_strata = list(data = col_size$size_est_cm3_strata, metrics = strata_level_metrics),
+  col_size_region    = list(data = col_size$Domain_est,    metrics = domain_est),
+  col_size_region_species    = list(data = col_size$Domain_est_species,    metrics = domain_est)
+
+)
+} else{
+  components <- list(
+  col_size_species = list(data = col_size$size_species, metrics = species_level_metrics),
+    col_size_site    = list(data = col_size$size_site,    metrics = site_level_metrics),
+  col_size_region    = list(data = col_size$Domain_est,    metrics = domain_est),
+  col_size_region_species    = list(data = col_size$Domain_est_species,    metrics = domain_est)
+
+)
+}
+
+prep_for_call_csv(components, project)
+```
+
+```{r}
+print("hi")
+```
+
+
+
+```{r}
+stop(STOP)
+```
+
+
+#### avCvr ttest
+```{r}
+# cover_df <- paste(project, region, start_year, end_year, "cover_region", sep = "_") 
+# cover_df <- get(cover_df)
+# 
+# NCRMP_perform_ttest(dataframe = cover_df,
+#                     metric1 = 'coral_cover',
+#                     metric2 = 'avCvr',
+#                     alpha = 0.05,
+#                     #test_type = "Years",
+#                     n_years = 4,
+#                     return_dataframe = FALSE)
+# 
+# 
+# NCRMP_perform_ttest(dataframe = cover_df,
+#                     metric1 = 'macroalgae_cover',
+#                     metric2 = 'avCvr',
+#                     alpha = 0.05,
+#                     #test_type = "Years",
+#                     n_years = 4,
+#                     return_dataframe = FALSE)
+
+```
+
+
+####PROBELM
+```{r}
+region = "Tortugas"
+project = "NCRMP"
+diadema_dens <- NCRMP_calculate_invert_density(region = region, project = "NCRMP")
+
+tmp <- diadema_dens$diadema_density_site %>%
+  filter(!(YEAR %in% c(2023, 2024)))
+
+old <- NCRMP_Tort_2014_22_invert_den_site
+
+all.equal(tmp, old)
+
+
+tmp <- diadema_dens$invert_strata %>%
+  filter(!(YEAR %in% c(2023, 2024)))
+
+old <- NCRMP_Tort_2014_22_invert_den_strata
+
+all.equal(tmp, old)
+
+
+tmp <- diadema_dens$Domain_est %>%
+  filter(!(YEAR %in% c(2023, 2024)))
+
+old <- NCRMP_Tort_2014_22_invert_den_region
+
+all.equal(tmp, old)
+
+
+lapply(diadema_dens, check_na)
+
+#MAKE CHANGES HERE
+
+#unpack list
+list2env(diadema_dens, envir = .GlobalEnv)
+
+#repack list
+diadema_dens <- mget(names(diadema_dens))
+
+components <- list(
+  invert_den_site = list(data = diadema_dens$diadema_density_site, metrics = invert),
+    invert_den_strata    = list(data = diadema_dens$invert_strata,    metrics = invert),
+  invert_den_region    = list(data = diadema_dens$Domain_est,    metrics = invert)
+
+)
+
+  
+  prep_for_call_csv(components, project)
+  
+```
+
+
+
+#### ESA Corals P/A
+```{r}
+esa_df <- NCRMP_calculate_ESA_corals_PresAbs()
+
+
+NCRMP_AllRegions_Years_ESA_PresAbs_Strat <- esa_df$NCRMP_AllRegions_Years_ESA_PresAbs_Strat
+NCRMP_AllRegions_Years_ESA_PresAbs_Site<- esa_df$NCRMP_AllRegions_Years_ESA_PresAbs_Site
+
+region_year <- esa_df$region_year 
+```
+
+```{r}
+
+
+
+prep_csv <- function(file_name, dataset, location, start_year , end_year   ){
+    file_name = "NCRMP_AllRegions_Years_ESA_PresAbs_Site"
+  dataset = NCRMP_AllRegions_Years_ESA_PresAbs_Site
+  location = esa
+  start_year = 14
+  end_year = 2024
+    
+    assign(file_name, value = dataset, envir = .GlobalEnv)
+    
+    make_data_path <- paste(paste(location, file_name, sep = "/"), "csv", sep = ".")
+
+    
+    write_csv(get(file_name), make_data_path)
+    final_data <- get(file_name)
+    
+    
+    data_path <- file.path(
+      "/Users/juliamateski/Documents/GitHub/NCRMP_benthics/ncrmp.benthics.analysis/data",
+      paste0(file_name, ".rda")
+    )
+    
+  save(list = file_name, file = data_path)
+}
+
+
+esa <- "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Data Queries/R Package Exports/ESA species"
+
+doprep_csv(
+  file_name = "NCRMP_AllRegions_Years_ESA_PresAbs_Site",
+  dataset = NCRMP_AllRegions_Years_ESA_PresAbs_Site,
+  location = esa, 
+  start_year = 14,
+  end_year = 2024
+)
+
+
+
+write.csv(NCRMP_AllRegions_Years_ESA_PresAbs_Strat, "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Data Queries/R Package Exports/ESA species/NCRMP_AllRegions_Years_ESA_PresAbs_Strat.csv", row.names = F)
+write.csv(NCRMP_AllRegions_Years_ESA_PresAbs_Site, "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Data Queries/R Package Exports/ESA species/NCRMP_AllRegions_Years_ESA_PresAbs_Site.csv", row.names = F)
+
+
+prep_csv <- function(file_name, dataset, location, start_year , end_year , region , project ){
+  
+
+  if(region == "Tortugas"){ region = "Tort"}
+  
+  if(region == "GOM"){ region = "FGBNMS"}
+    
+    assign(file_name, value = dataset, envir = .GlobalEnv)
+    
+    make_data_path <- paste(paste(location, file_name, sep = "\\"), "csv", sep = ".")
+
+    write_csv(get(file_name), make_data_path)
+    final_data <- get(file_name)
+    
+    
+    data_path <- file.path(
+      "/Users/juliamateski/Documents/GitHub/NCRMP_benthics/ncrmp.benthics.analysis/data",
+      paste0(file_name, ".rda")
+    )
+    
+  save(list = file_name, file = data_path)
+}
+
+usethis::use_data(NCRMP_AllRegions_Years_ESA_PresAbs_Strat,  overwrite = TRUE)
+usethis::use_data(NCRMP_AllRegions_Years_ESA_PresAbs_Site,  overwrite = TRUE)
+
+```
+
+#### ESA FOI 
+```{r}
+esa_foi_df <- NCRMP_make_ESA_corals_FOI()
+
+
+NCRMP_ESA_FOI_species_NEW <- esa_foi_df$FOI_species
+
+
+all.equal(NCRMP_ESA_FOI_species, NCRMP_ESA_FOI_species_NEW)
+
+view(NCRMP_ESA_FOI_species_NEW)
+view(NCRMP_ESA_FOI_species)
+
+NCRMP_ESA_FOI_region <- esa_foi_df$FOI_region
+
+NCRMP_ESA_FOI_species <- esa_foi_df$FOI_species
+```
+
+```{r}
+write.csv(NCRMP_ESA_FOI_region, "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Data Queries/R Package Exports/ESA species/NCRMP_ESA_FOI_region.csv", row.names = F)
+write.csv(NCRMP_ESA_FOI_species, "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Data Queries/R Package Exports/ESA species/NCRMP_ESA_FOI_species.csv", row.names = F)
+
+usethis::use_data(NCRMP_ESA_FOI_region,  overwrite = TRUE)
+usethis::use_data(NCRMP_ESA_FOI_species,  overwrite = TRUE)
+```
+
+#### Bleaching abundance 
+```{r}
+
+tmp <- NCRMP_make_bleaching_abundance()
+
+
+NCRMP_bleaching_abundance_Allyears_Allregions_NEW <- tmp$NCRMP_bleaching_abundance_Allyears_Allregions %>%
+    filter(!(YEAR %in% c(2023, 2024)))
+view(NCRMP_bleaching_abundance_Allyears_Allregions_NEW)
+all.equal(NCRMP_bleaching_abundance_Allyears_Allregions_NEW,NCRMP_bleaching_abundance_Allyears_Allregions)
+
+view(anti_join(NCRMP_bleaching_abundance_Allyears_Allregions, NCRMP_bleaching_abundance_Allyears_Allregions_NEW))
+
+view(NCRMP_bleaching_abundance_Allyears_Allregions_NEW)
+view(NCRMP_bleaching_abundance_Allyears_Allregions)
+write.csv(NCRMP_bleaching_abundance_Allyears_Allregions, "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Data Queries/R Package Exports/Bleaching and Disease/NCRMP_bleaching_abundance_Allyears_Allregions.csv", row.names = F)
+
+
+
+
+```
+
+#### Combine regions Coral demographics
+```{r}
+tmp  <- dplyr::bind_rows(SEFCRI_2014_2stage_coral_demographics,
+                         SEFCRI_2016_coral_demographics,
+                         SEFCRI_2018_coral_demographics,
+                         SEFCRI_2020_coral_demographics,
+                         SEFCRI_2022_coral_demographics,
+                         SEFCRI_2024_coral_demographics,
+                         FLK_2014_coral_demographics,
+                         FLK_2016_coral_demographics,
+                         FLK_2018_coral_demographics %>% dplyr::mutate(RUGOSITY_CD = as.logical(RUGOSITY_CD)),
+                         FLK_2020_coral_demographics,
+                         FLK_2022_coral_demographics,
+                         FLK_2024_coral_demographics,
+                         TortugasMarq_2014_coral_demographics,
+                         TortugasMarq_2016_coral_demographics,
+                         Tortugas_2018_coral_demographics,
+                         Tortugas_2020_coral_demographics,
+                         Tortugas_2022_coral_demographics,
+                         Tortugas_2024_coral_demographics,
+                         USVI_2013_coral_demographics,
+                         USVI_2015_coral_demographics,
+                         USVI_2017_coral_demographics,
+                         USVI_2019_coral_demographics,
+                         USVI_2021_coral_demographics,
+			                  USVI_2023_coral_demographics,
+                         PRICO_2014_coral_demographics,
+                         PRICO_2016_coral_demographics,
+                         PRICO_2019_coral_demographics,
+                         PRICO_2021_coral_demographics,
+			                    PRICO_2023_coral_demographics) %>%
+  # Combine and change to factor - there are letters in the FGBNMS MAPGRID NRs
+  dplyr::mutate(MAPGRID_NR = as.factor(MAPGRID_NR))
+
+NCRMP_demo_All_regions_years_NEW <- tmp %>%
+  dplyr::bind_rows(
+    FGBNMS_2013_coral_demographics %>% dplyr::mutate(MAPGRID_NR = as.character(MAPGRID_NR)),
+    FGBNMS_2015_coral_demographics %>% dplyr::mutate(MAPGRID_NR = as.character(MAPGRID_NR)),
+    FGBNMS_2018_coral_demographics %>% dplyr::mutate(MAPGRID_NR = as.character(MAPGRID_NR)),
+    FGBNMS_2022_coral_demographics %>% dplyr::mutate(MAPGRID_NR = as.character(MAPGRID_NR)),
+    FGBNMS_2024_coral_demographics %>% dplyr::mutate(MAPGRID_NR = as.character(MAPGRID_NR))
+  )
+
+```
+
+```{r}
+
+write.csv(NCRMP_demo_All_regions_years, "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Combined Regions and Years/NCRMP_demo_All_regions_years.csv", row.names = F)
+
+
+
+usethis::use_data(NCRMP_demo_All_regions_years,  overwrite = TRUE)
+```
+
+####Combine Benthic cover
+```{r}
+tmp  <- dplyr::bind_rows(SEFCRI_2014_2stage_benthic_cover,
+                         SEFCRI_2016_benthic_cover,
+                         SEFCRI_2018_benthic_cover,
+                         SEFCRI_2020_benthic_cover,
+                         SEFCRI_2022_benthic_cover,
+                         SEFCRI_2024_benthic_cover,
+                         FLK_2014_2stage_benthic_cover,
+                         FLK_2016_benthic_cover,
+                         FLK_2018_coral_demographics %>% dplyr::mutate(RUGOSITY_CD = as.logical(RUGOSITY_CD)),
+                         FLK_2020_benthic_cover,
+                         FLK_2022_benthic_cover,
+                         FLK_2024_benthic_cover,
+                         TortugasMarq_2014_benthic_cover,
+                         TortugasMarq_2016_benthic_cover,
+                         Tortugas_2018_benthic_cover,
+                         Tortugas_2020_benthic_cover,
+                         Tortugas_2022_benthic_cover,
+                         Tortugas_2024_benthic_cover,
+                         Tortugas_2024_benthic_cover,
+                         USVI_2013_benthic_cover,
+                         USVI_2015_benthic_cover,
+                         USVI_2017_benthic_cover,
+                         USVI_2019_benthic_cover,
+                         USVI_2021_benthic_cover,
+			                   USVI_2023_benthic_cover,
+                         PRICO_2014_benthic_cover,
+                         PRICO_2016_benthic_cover,
+                         PRICO_2019_benthic_cover,
+                         PRICO_2021_benthic_cover,
+                         PRICO_2023_benthic_cover) %>%
+  # Combine and change to factor - there are letters in the FGBNMS MAPGRID NRs
+  dplyr::mutate(MAPGRID_NR = as.factor(MAPGRID_NR))
+NCRMP_benthic_cover_All_regions_years_NEW <- tmp %>%
+  dplyr::bind_rows(
+    FGBNMS_2013_benthic_cover %>% dplyr::mutate(MAPGRID_NR = as.character(MAPGRID_NR)),
+    FGBNMS_2015_benthic_cover %>% dplyr::mutate(MAPGRID_NR = as.character(MAPGRID_NR)),
+    FGBNMS_2018_benthic_cover %>% dplyr::mutate(MAPGRID_NR = as.character(MAPGRID_NR)),
+    FGBNMS_2022_benthic_cover %>% dplyr::mutate(MAPGRID_NR = as.character(MAPGRID_NR)),
+    FGBNMS_2024_benthic_cover %>% dplyr::mutate(MAPGRID_NR = as.character(MAPGRID_NR))
+  )
+
+```
+
+```{r}
+write.csv(NCRMP_benthic_cover_All_regions_years, "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Combined Regions and Years/NCRMP_benthic_cover_All_regions_years.csv", row.names = F)
+
+usethis::use_data(NCRMP_benthic_cover_All_regions_years,  overwrite = TRUE)
+```
+
+#JULIA TAG
+#DIFFERENT
+Density CV and occurrence  
+Check data
+```{r}
+library(tidyverse)
+library(ncrmp.benthics.analysis)
+region = "Tortugas"
+project = "NCRMP"
+region_name = "FLORIDA KEYS"
+cv_occ_data <- NCRMP_DRM_colony_density_CV_and_occurrence(region = region,
+                                              ptitle = region_name,
+                                              project = project,
+                                              year = 2024,
+                                              file_path = fig_path,  
+                                              species_filter = "NULL")
+
+lapply(cv_occ_data, check_na)
+
+#MAKE CHANGES HERE
+
+#unpack list
+list2env(cv_occ_data, envir = .GlobalEnv)
+
+#repack list
+cv_occ_data <- mget(names(cv_occ_data))
+
+
+
+NCRMP_Tort_Occ_Den_CV <- tmp$region_means
+NCRMP_Tort_Occ_Den_CV_20 <- tmp$region_means_cv20
+
+save(list = NCRMP_Tort_Occ_Den_CV_20, file = "/Users/juliamateski/Documents/GitHub/NCRMP_benthics/ncrmp.benthics.analysis/data/NCRMP_Tort_Occ_Den_CV_20.rda")
+
+write.csv(NCRMP_SEFL_Occ_Den_CV, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_SEFL_Occ_Den_CV.csv", row.names = F)
+write.csv(NCRMP_SEFL_Occ_Den_CV_20, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_SEFL_Occ_Den_CV_20.csv", row.names = F)
+
+# copy to console and run
+usethis::use_data(NCRMP_SEFL_Occ_Den_CV,  overwrite = TRUE)
+usethis::use_data(NCRMP_SEFL_Occ_Den_CV_20,  overwrite = TRUE)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#old code
+#all of this does NOT need to be run
+
+
+#### DRM+SCREAM pre NCRMP metrics
+```{r}
+
+SCREAM_coral_density <- function(project, species_filter = FALSE, start_year, end_year ){
+  
+  call_data <- DRM_SCREAM_calculate_colony_density(project = project, 
+                                           species_filter = "FALSE")
+  
+    prep_csv <- function(dataset_name_string, dataset, location){
+    
+    
+    file_name <- paste(project, "FL", start_year, end_year, dataset_name_string, sep = "_")    
+    assign(file_name, value = dataset, envir = .GlobalEnv)
+    make_data_path <- paste(paste(location, dataset_name_string, sep = "\\"), "csv", sep = ".")
+    write_csv(get(file_name), make_data_path)
+    final_data <- get(file_name)
+    usethis::use_data(final_data, overwrite = TRUE)
+    }
+   
+  prep_csv("density_site", call_data$density_site, site_level_metrics)  
+  prep_csv("density_strata", call_data$density_strata, strata_level_metrics)  
+  prep_csv("density_region", call_data$Domain_est, domain_est)
+  
+      if (project == "DRM_SCREAM" || project == "SCREAM"){
+      prep_csv("density_species", call_data$density_species, species_level_metrics) 
+    }
+}
+
+SCREAM_coral_density(project = "DRM_SCREAM", start_year = 1999, end_year = 13)
+
+```
+
+####SCREAM Mortality
+```{r}
+
+SCREAM_mortality <- function( project, start_year, end_year ){
+  
+  call_data <- DRM_SCREAM_calculate_mortality(project = project, species_filter = "FALSE")
+  
+  prep_csv <- function(dataset_name_string, dataset, location){
+    
+    
+    file_name <- paste(project, "FL", start_year, end_year, dataset_name_string, sep = "_")    
+    assign(file_name, value = dataset, envir = .GlobalEnv)
+    make_data_path <- paste(paste(location, dataset_name_string, sep = "\\"), "csv", sep = ".")
+
+    write_csv(get(file_name), make_data_path)
+    final_data <- get(file_name)
+    usethis::use_data(final_data, overwrite = TRUE)
+  }
+
+  prep_csv("old_mort_site", call_data$old_mortality_site, site_level_metrics)  
+  prep_csv("rec_mort_site", call_data$recent_mortality_site, site_level_metrics)  
+  prep_csv("old_mort_strata", call_data$old_mortality_strata, strata_level_metrics)  
+  prep_csv("rec_mort_strata", call_data$rec_mortality_strata, strata_level_metrics)  
+  prep_csv("old_mort_region", call_data$Domain_est_old_mort, domain_est)
+  prep_csv("rec_mort_region", call_data$Domain_est_rec_mort, site_level_metrics)
+  #prep_csv("old_mort_species_region", call_data$Domain_est_old_mort_species, strata_level_metrics)
+  #prep_csv("rec_mort_species_region", call_data$Domain_est_rec_mort_species, domain_est)
+
+}
+
+SCREAM_mortality( project = "DRM_SCREAM",  start_year = 1999, end_year =13 )
+```
+
+####SCREAM Disease
+```{r}
+SCREAM_disease_prev_colonies <- function(project,  start_year, end_year ){
+  
+  call_data <- DRM_SCREAM_calculate_disease_prevalence(project = project,
+                                                      
+                                                       species_filter = "FALSE")
+  
+  
+  prep_csv <- function(dataset_name_string, dataset, location){
+
+    file_name <- paste(project, "FL", start_year, end_year, dataset_name_string, sep = "_")    
+    assign(file_name, value = dataset, envir = .GlobalEnv)
+    make_data_path <- paste(paste(location, dataset_name_string, sep = "\\"), "csv", sep = ".")
+    write_csv(get(file_name), make_data_path)
+    final_data <- get(file_name)
+    usethis::use_data(final_data, overwrite = TRUE)
+  }
+
+ # prep_csv("dis_ble_prev_species", call_data$dis_ble_prev_species, species_level_metrics) 
+  prep_csv("dis_prev_site", call_data$disease_prev_site, site_level_metrics)  
+  prep_csv("dis_prev_strata", call_data$unwh_dis_prev_strata, strata_level_metrics)  
+  #prep_csv("ble_prev_strata", call_data$ble_prev_strata, strata_level_metrics)
+  prep_csv("dis_prev_region", call_data$Domain_est, domain_est)
+  
+
+}
+
+SCREAM_disease_prev_colonies( project = "DRM", start_year = 1999, end_year =13)
+```
+
+## Combine preNCRMP AR DRM and SCREAM data 
+```{r SCREAM}
+# Temporarily set the SCREAM file as the wd. It will revert back to the parent folder as soon
+# as the chunk is done running.
+setwd("K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/FL/SCREAM")
+files <- list.files(pattern="*.csv")
+SCREAM = do.call(rbind, lapply(files, function(x) read.csv(x, stringsAsFactors = FALSE)))
+SCREAM <- SCREAM %>%
+  mutate(SURVEY = "SCREAM",
+         PRIMARY_SAMPLE_UNIT = as.factor(PRIMARY_SAMPLE_UNIT))
+```
+```{r DRM}
+# Temporarily set the SCREAM file as the wd. It will revert back to the parent folder as soon
+# as the chunk is done running.
+setwd("K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/FL/FRRP")
+files <- list.files(pattern="*2stage_coral_demographics.csv")
+DRM = do.call(rbind, lapply(files, function(x) read.csv(x, stringsAsFactors = FALSE)))
+DRM <- DRM %>%
+  mutate(SURVEY = "DRM",
+         PRIMARY_SAMPLE_UNIT = as.factor(PRIMARY_SAMPLE_UNIT)) %>%
+  filter(YEAR < 2014)
+```
+### Combine 
+```{r DRM}
+preNCRMP_SCREAM_DRM_coral_demographics <- as.data.frame(dplyr::bind_rows(SCREAM, DRM))
+usethis::use_data(preNCRMP_SCREAM_DRM_coral_demographics, overwrite = TRUE)
+```
+

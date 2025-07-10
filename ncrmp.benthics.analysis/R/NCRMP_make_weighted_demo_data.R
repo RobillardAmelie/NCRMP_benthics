@@ -58,100 +58,94 @@
 #'
 #'
 
-NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, species_filter){
 
-  # Define regional groups
+
+NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, species_filter){
+  
+  #### Define regional groups   ####
   FL <- c("SEFCRI", "FLK", "Tortugas")
   FGB <- "FGB"
   Carib <- c("STTSTJ", "STX", "PRICO")
 
+  #### Get NTOT   ####
   if(datatype == "mortality_species" | datatype == "size_species"){
     ntot <- load_NTOT_species(region = region, inputdata = inputdata, project = project)
-  }
-
-  else{
+  }else{
     ntot <- load_NTOT(region = region, inputdata = inputdata, project = project)
   }
 
-
-  #### Calculate weighted species richness ####
-  summarize_richness <- function(data){
-    data %>%
-      dplyr::summarise(# compute average richness
-        avspr = mean(SPP_RICHNESS),
-        svar = var(SPP_RICHNESS), # compute stratum variance
-        n = length(unique(PRIMARY_SAMPLE_UNIT))) %>%
-      # convert 0 for stratum variance so that the sqrt is a small # but not a 0
-      dplyr::mutate(svar = dplyr::case_when(svar == 0 ~ 0.00000001, TRUE ~ svar)) %>%
-      dplyr::mutate(Var=svar/n, #variance of mean density in stratum
-                    std = sqrt(svar), # std dev of density in stratum
-                    SE=sqrt(Var)) #SE of the mean density in stratum
-    dplyr::full_join(., ntot) %>% # Merge ntot
-      # stratum estimates
-      dplyr::mutate(whavspr = wh * avspr,
-                    whvar = wh^2 * Var,
-                    n = tidyr::replace_na(n, 0),
-                    PROT = NA,
-                    RUG_CD = NA)  %>%
-      dplyr::ungroup()
-  }
-
-####Richness####
-  if(datatype == "richness"){
-
-    if(region %in% FL) {
-
-      richness_est <- inputdata %>%
-        # group by analysis level strata
-        dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " ")) %>%
-        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, PROT) %>% # Modify this line to changes analysis substrate
-        summarize_richness()
+  #### Richness   ####
+  if (datatype == "richness") {
+    
+    inputdata <- inputdata %>%
+      mutate(
+        ANALYSIS_STRATUM = if (region %in% FL) {
+          paste(STRAT, "/ PROT =", PROT)
+        } else {
+          STRAT
+        }
+      )
+    grouping_vars <- if (region %in% FL) {
+      c("YEAR", "ANALYSIS_STRATUM", "STRAT", "PROT")
+    } else {
+      c("YEAR", "ANALYSIS_STRATUM", "STRAT")
     }
-
-    if(region %in% FGB | region %in% Carib) {
-
-      richness_est <- inputdata %>%
-        # group by analysis level strata
-        dplyr::mutate(ANALYSIS_STRATUM = STRAT) %>%
-        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT) %>% # Modify this line to changes analysis substrate
-        summarize_richness()
-    }
-
-    # Reformat output
-    richness_strata <-  richness_est %>%
-      dplyr::select(REGION, YEAR, ANALYSIS_STRATUM, STRAT, RUG_CD, PROT, NTOT, n, avspr, Var, SE,) %>%
-      dplyr::mutate(RUG_CD = as.factor(RUG_CD))
-
-    ## Domain Estimates
+    
+    richness_est <- inputdata %>%
+      group_by(across(all_of(grouping_vars))) %>%
+      summarise(
+        avspr = mean(SPP_RICHNESS, na.rm = TRUE),
+        svar = var(SPP_RICHNESS, na.rm = TRUE),
+        n = n_distinct(PRIMARY_SAMPLE_UNIT),
+        .groups = "drop"
+      ) %>%
+      mutate(
+        svar = ifelse(svar == 0, 1e-8, svar),
+        Var = svar / n,
+        std = sqrt(svar),
+        SE = sqrt(Var)
+      ) %>%
+      full_join(ntot, by = c("YEAR", "ANALYSIS_STRATUM", "STRAT")) %>%
+      mutate(
+        whavspr = wh * avspr,
+        whvar = wh^2 * Var,
+        n = tidyr::replace_na(n, 0),
+        PROT = if (!"PROT" %in% colnames(.)) NA else PROT,
+        RUG_CD = NA
+      )
+    # Strata estimates
+    richness_strata <- richness_est %>%
+      select(REGION, YEAR, ANALYSIS_STRATUM, STRAT, RUG_CD, PROT, NTOT, n, avspr, Var, SE) %>%
+      mutate(RUG_CD = as.factor(RUG_CD))
+    
+    #Domain level estimates
     Domain_est <- richness_est %>%
-      dplyr::group_by(REGION, YEAR) %>%
-      dplyr::summarise(avSpr = sum(whavspr, na.rm = T), # This accounts for strata with 0 species of interest present
-                       Var = sum(whvar, na.rm = T),    # This accounts for strata with N = 1
-                       SE=sqrt(Var),
-                       n_sites = sum(n),
-                       n_strat = length(unique(ANALYSIS_STRATUM)),
-                       ngrtot = sum(NTOT) )  %>%
-      dplyr::ungroup()
+      group_by(REGION, YEAR) %>%
+      summarise(
+        avSpr = sum(whavspr, na.rm = TRUE),
+        Var = sum(whvar, na.rm = TRUE),
+        SE = sqrt(Var),
+        n_sites = sum(n),
+        n_strat = n_distinct(ANALYSIS_STRATUM),
+        ngrtot = sum(NTOT, na.rm = TRUE),
+        .groups = "drop"
+      )
+    
+    return(list(
+      richness_strata = richness_strata,
+      Domain_est = Domain_est
+    ))
+  }
+  
 
-    #Export
-    output <- list(
-      "richness_strata" = richness_strata,
-      "Domain_est" = Domain_est)
 
-    return(output)
-
-  } #end richness section
-
-
-  #### Calculate weighted density ####
+  #### HELPER: Calculate weighted density ####
   calc_density <- function(data){
     data %>%
-      dplyr::summarise(# compute average density
-        avden = mean(DENSITY),
-        # compute stratum variance
-        svar = var(DENSITY),
-        # calculate N
-        n = length(unique(PRIMARY_SAMPLE_UNIT))) %>%
+      dplyr::summarise(
+        avden = mean(DENSITY), # compute average density
+        svar = var(DENSITY), # comp stratum variance
+        n = length(unique(PRIMARY_SAMPLE_UNIT))) %>% #calculate N
       # convert 0 for stratum variance so that the sqrt is a small # but not a 0
       dplyr::mutate(svar = dplyr::case_when(svar == 0 ~ 0.00000001, TRUE ~ svar)) %>%
       dplyr::mutate(Var=svar/n, #variance of mean density in stratum
@@ -164,32 +158,27 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
                     whvar = wh^2 * Var,
                     n = tidyr::replace_na(n, 0),
                     # Add the following to match FL format
-                    PROT = NA,
-                    RUG_CD = NA)  %>%
-      dplyr::ungroup()
-
+                    PROT = 0,
+                    RUG_CD = NA)  %>% dplyr::ungroup()
   }
 
   ####Density####
   if(datatype == "density"){
-
     if(region %in% FL) {
-
       # Calculate avdns, svar, n and std
       density_est <- inputdata %>%
         # group by analysis level strata
         dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " ")) %>%
-        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, PROT) %>% # Modify this line to changes analysis substrate
+        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, PROT) %>% 
         calc_density()
     }
 
     if(region %in% FGB | region %in% Carib) {
-
       # Calculate avdns, svar, n and std
       density_est <- inputdata %>%
         # group by analysis level strata
         dplyr::mutate(ANALYSIS_STRATUM = STRAT) %>%
-        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT) %>% # Modify this line to changes analysis substrate
+        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT) %>% 
         calc_density()
     }
 
@@ -201,8 +190,8 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
 
     calc_domain_estimates <- function(data){
       data %>%
-        dplyr::summarise(avDen = sum(whavden, na.rm = T), # This accounts for strata with 0 species of interest present
-                         Var = sum(whvar, na.rm = T),    # This accounts for strata with N = 1
+        dplyr::summarise(avDen = sum(whavden, na.rm = T), 
+                         Var = sum(whvar, na.rm = T),    
                          SE=sqrt(Var),
                          CV_perc=(SE/avDen)*100,
                          n_sites = sum(n),
@@ -219,7 +208,7 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
       Domain_est <- density_est %>%
         dplyr::group_by(REGION, YEAR) %>%
         calc_domain_estimates()
-
+    
       #Export
       output <- list(
         "density_strata" = density_strata,
@@ -287,7 +276,7 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
       mortality_est <- inputdata %>%
         # group by analysis level strata
         dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " ")) %>%
-        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, PROT, MORT_TYPE) %>% # Modify this line to changes analysis substrate
+        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, PROT, MORT_TYPE) %>%  
         calc_mortality()
     }
 
@@ -297,7 +286,7 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
       mortality_est <- inputdata %>%
         # group by analysis level strata
         dplyr::mutate(ANALYSIS_STRATUM = STRAT) %>%
-        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, MORT_TYPE) %>% # Modify this line to changes analysis substrate
+        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, MORT_TYPE) %>%  
         calc_mortality()
     }
 
@@ -361,7 +350,7 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
       mortality_est <- inputdata %>%
         # group by analysis level strata
         dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " ")) %>%
-        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, PROT, MORT_TYPE, SPECIES_CD, SPECIES_NAME) %>% # Modify this line to changes analysis substrate
+        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, PROT, MORT_TYPE, SPECIES_CD, SPECIES_NAME) %>%  
         calc_mort_by_species()
     }
 
@@ -370,7 +359,7 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
       mortality_est <- inputdata %>%
         # group by analysis level strata
         dplyr::mutate(ANALYSIS_STRATUM = STRAT) %>%
-        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, MORT_TYPE, SPECIES_CD, SPECIES_NAME) %>% # Modify this line to changes analysis substrate
+        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, MORT_TYPE, SPECIES_CD, SPECIES_NAME) %>%  
         calc_mort_by_species()
     }
 
@@ -408,11 +397,10 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
     return(output)
   } #end mortaility by species
 
-
-  #### Calculate weighted diversity ####
-
-  calc_diveristy <- function(data,region) {
-    data%>%
+  #### Diversity helper function ####
+  diversity_helper_function <- function(data){
+    data %>%
+    dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT) %>% 
       dplyr::summarise(
         # compute average diversity
         avSimp = mean(Simpson, na.rm = T),
@@ -422,65 +410,83 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
         svar_Simp = var(Simpson, na.rm = T),
         svar_InvSimp = var(Inv_Simpson, na.rm = T),
         svar_Shan = var(Shannon, na.rm = T),
-        n = ifelse(region == "FL", length(PRIMARY_SAMPLE_UNIT)),length(Simpson))
-        # convert 0 for stratum variance so that the sqrt is a small # but not a 0
-        dplyr::mutate(svar_Simp = dplyr::case_when(svar_Simp == 0 ~ 0.00000001, TRUE ~ svar_Simp),
-                      svar_InvSimp = dplyr::case_when(svar_InvSimp == 0 ~ 0.00000001, TRUE ~ svar_InvSimp),
-                      svar_Shan = dplyr::case_when(svar_Shan == 0 ~ 0.00000001, TRUE ~ svar_Shan)) %>%
-        dplyr::mutate(Var_Simp =svar_Simp/n,
-                      Var_InvSimp = svar_InvSimp,
-                      Var_Shan = svar_Shan,
-                      std_Simp = sqrt(svar_Simp),
-                      std_InvSimp = sqrt(svar_InvSimp),
-                      std_Shan = sqrt(svar_Shan),
-                      SE_Simp = sqrt(Var_Simp),
-                      SE_InvSimp = sqrt(Var_InvSimp),
-                      SE_Shan = sqrt(Var_Shan)) %>%
-    dplyr::full_join(., ntot) %>%
-    # stratum estimates
-    dplyr::mutate(whavSimp = wh * avSimp,
-                        whavInvSimp = wh * avInvSimp,
-                        whavShan = wh * avShannon,
-                        whvar_Simp = wh^2 * Var_Simp,
-                        whvar_InvSimp = wh^2 * Var_InvSimp,
-                        whvar_Shan = wh^2 * Var_Shan,
-                        n = tidyr::replace_na(n, 0),
-                        # Add the following to match FL format temporarily
-                        PROT = NA,
-                        RUG_CD = NA)  %>%
-    dplyr::ungroup()
+        n = length(Simpson)) %>%
+      # convert 0 for stratum variance so that the sqrt is a small # but not a 0
+      dplyr::mutate(svar_Simp = dplyr::case_when(svar_Simp == 0 ~ 0.00000001,
+                                                 TRUE ~ svar_Simp),
+                    svar_InvSimp = dplyr::case_when(svar_InvSimp == 0 ~ 0.00000001,
+                                                    TRUE ~ svar_InvSimp),
+                    svar_Shan = dplyr::case_when(svar_Shan == 0 ~ 0.00000001,
+                                                 TRUE ~ svar_Shan)) %>%
+      dplyr::mutate(Var_Simp =svar_Simp/n,
+                    Var_InvSimp = svar_InvSimp,
+                    Var_Shan = svar_Shan,
+                    std_Simp = sqrt(svar_Simp),
+                    std_InvSimp = sqrt(svar_InvSimp),
+                    std_Shan = sqrt(svar_Shan),
+                    SE_Simp = sqrt(Var_Simp),
+                    SE_InvSimp = sqrt(Var_InvSimp),
+                    SE_Shan = sqrt(Var_Shan))
   }
-
-
+  #### Diversity   ####
   if(datatype == "diversity"){
-
+    
     if(region %in% FL) {
-
+      
       # Calculate avdiv, svar, n and std
       diversity_est <- inputdata %>%
         # group by analysis level strata
         dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " ")) %>%
-        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, PROT) %>% # Modify this line to changes analysis substrate
-        calc_diveristy()
+        diversity_helper_function()
+      
+      diversity_est <- diversity_est %>%
+        # Merge ntot with diversity_est
+        dplyr::full_join(., ntot) %>%
+        # stratum estimates
+        dplyr::mutate(whavSimp = wh * avSimp,
+                      whavInvSimp = wh * avInvSimp,
+                      whavShan = wh * avShannon,
+                      whvar_Simp = wh^2 * Var_Simp,
+                      whvar_InvSimp = wh^2 * Var_InvSimp,
+                      whvar_Shan = wh^2 * Var_Shan,
+                      n = tidyr::replace_na(n, 0))  %>%
+        dplyr::ungroup()
     }
-
-
+    
     if(region %in% FGB | region %in% Carib) {
-
+      
       # Calculate avdiv, svar, n and std
       diversity_est <- inputdata %>%
         # group by analysis level strata
         dplyr::mutate(ANALYSIS_STRATUM = STRAT) %>%
-        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT) %>% # Modify this line to changes analysis substrate
-        calc_diveristy()
+        diversity_helper_function()
+      
+      
+      diversity_est <- diversity_est %>%
+        # Merge ntot with diversity_est
+        dplyr::full_join(., ntot) %>%
+        # stratum estimates
+        dplyr::mutate(whavSimp = wh * avSimp,
+                      whavInvSimp = wh * avInvSimp,
+                      whavShan = wh * avShannon,
+                      whvar_Simp = wh^2 * Var_Simp,
+                      whvar_InvSimp = wh^2 * Var_InvSimp,
+                      whvar_Shan = wh^2 * Var_Shan,
+                      n = tidyr::replace_na(n, 0),
+                      # Add the following to match FL format temporarily
+                      PROT = NA,
+                      RUG_CD = NA)  %>%
+        dplyr::ungroup()
     }
-
+  
     # Reformat output
+    
     diversity_strata <-  diversity_est %>%
       dplyr::select(REGION, YEAR, ANALYSIS_STRATUM, STRAT, PROT, NTOT, n,
                     avSimp, avInvSimp, avShannon, Var_Simp, Var_InvSimp, Var_Shan,
                     SE_Simp, SE_InvSimp, SE_Shan)
-
+    # REGION, YEAR, ANALYSIS_STRATUM, STRAT, PROT, n, avmort, Var, SE, CV_perc
+    
     ## Domain Estimates
     Domain_est <- diversity_est %>%
       dplyr::group_by(REGION, YEAR) %>%
@@ -497,16 +503,16 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
                        n_strat = length(unique(ANALYSIS_STRATUM)),
                        ngrtot = sum(NTOT), .groups = "keep" )  %>%
       dplyr::ungroup()
-
-  #Export
+    
+    # Create list to export
     output <- list(
       "diversity_strata" = diversity_strata,
       "Domain_est_div" = Domain_est)
-
+    
     return(output)
-  } #end density
 
-
+  }
+  
 
   ####Calculate Disease####
 
@@ -546,10 +552,9 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
       disease_est <- inputdata %>%
         # group by analysis level strata
         dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " ")) %>%
-        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, PROT) %>% # Modify this line to changes analysis substrate
+        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, PROT) %>%  
         calc_disease()
     }
-
 
     if(region %in% FGB |
        region %in% Carib) {
@@ -558,7 +563,7 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
       disease_est <- inputdata %>%
         # group by analysis level strata
         dplyr::mutate(ANALYSIS_STRATUM = STRAT) %>%
-        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT) %>% # Modify this line to changes analysis substrate
+        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT) %>%  
         calc_disease()
     }
 
@@ -596,9 +601,7 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
     return(output)
   } #end disase
 
-
   ####Calculate Size ####
-
   calc_size <- function(data){
   data %>%
     dplyr::summarise(
@@ -647,17 +650,15 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
         size_est <- inputdata %>%
           # group by analysis level strata
           dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " ")) %>%
-          dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, PROT) %>% # Modify this line to changes analysis substrate
+          dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, PROT) %>%  
           calc_size()
     }
-
-
       if(region %in% FL && project == "NCRMP_DRM"){
         # Calculate av, svar, n and std
         size_est <- inputdata %>%
           # group by analysis level strata
           dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " ")) %>%
-          dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, PROT) %>% # Modify this line to changes analysis substrate
+          dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, PROT) %>%  
           dplyr::summarise(
             av_maxdiam = mean(avg_maxdiam), # compute average size
             svar_maxdiam = var(avg_maxdiam),# compute stratum variance
@@ -678,10 +679,9 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
       size_est <- inputdata %>%
         # group by analysis level strata
         dplyr::mutate(ANALYSIS_STRATUM = STRAT) %>%
-        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT) %>% # Modify this line to changes analysis substrate
+        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT) %>%  
         calc_size()
     }
-
 
     # Reformat output
     if(project == "NCRMP"){
@@ -794,7 +794,7 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
         size_est <- inputdata %>%
           # group by analysis level strata
           dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " ")) %>%
-          dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, SPECIES_CD, SPECIES_NAME) %>% # Modify this line to changes analysis substrate
+          dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, SPECIES_CD, SPECIES_NAME) %>%  
           dplyr::summarise(
             av_maxdiam = mean(avg_maxdiam), # compute average size
             svar_maxdiam = var(avg_maxdiam),# compute stratum variance
@@ -816,7 +816,7 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
         size_est <- inputdata %>%
           # group by analysis level strata
           dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " ")) %>%
-          dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, SPECIES_CD, SPECIES_NAME) %>% # Modify this line to changes analysis substrate
+          dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, SPECIES_CD, SPECIES_NAME) %>%  
           calc_size_species()
       }
 
@@ -826,13 +826,11 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
       size_est <- inputdata %>%
         # group by analysis level strata
         dplyr::mutate(ANALYSIS_STRATUM = STRAT) %>%
-        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, SPECIES_CD, SPECIES_NAME) %>% # Modify this line to changes analysis substrate
+        dplyr::group_by(YEAR, ANALYSIS_STRATUM, STRAT, SPECIES_CD, SPECIES_NAME) %>%  
         calc_size_species()
     }
-
-
+    
     # Reformat output
-
     if(project == "NCRMP"){
 
       size_est_species <- size_est %>%
@@ -916,3 +914,6 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
     return(output)
   }
 }
+
+
+

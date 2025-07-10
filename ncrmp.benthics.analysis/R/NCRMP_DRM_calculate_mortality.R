@@ -22,7 +22,7 @@
 #
 
 # NCRMP Caribbean Benthic analytics team: Groves, Viehman, Williams
-# Last update: Feb 2025
+# Last update: Jun 2025
 
 
 ##############################################################################################################################
@@ -245,8 +245,9 @@ NCRMP_DRM_calculate_mortality <- function(project, region, species_filter = "NUL
           list2env(weighted_data, envir = environment())
 
           rec_mortality_species_strata <- mortality_strata_species %>% dplyr::mutate(MORT_TYPE = "Recent")
-          Domain_est_rec_mort_species <- Domain_est_species %>%dplyr::mutate(MORT_TYPE = "Recent")
+          Domain_est_rec_mort_species <- Domain_est_species %>% dplyr::mutate(MORT_TYPE = "Recent")
           ntot_check_rec_mort_species <- ntot_check
+          
 
           ####Export####
           output <- list(
@@ -265,3 +266,5 @@ NCRMP_DRM_calculate_mortality <- function(project, region, species_filter = "NUL
 
           return(output)
 }
+
+
