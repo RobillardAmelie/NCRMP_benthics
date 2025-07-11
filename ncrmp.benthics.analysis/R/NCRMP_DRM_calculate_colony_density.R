@@ -21,7 +21,7 @@
 #
 
 # NCRMP Caribbean Benthic analytics team: Groves, Viehman, Williams
-# Last update: Mar 2025
+# Last update: Jul 2025
 
 
 ##############################################################################################################################
@@ -79,15 +79,14 @@ NCRMP_DRM_calculate_colony_density <- function(project = "NULL", region, species
     abund <- data %>% dplyr::summarise(ABUNDANCE = sum(N), .groups = "keep")
     
     if(transect_2 == TRUE){
-      dens <- abund %>% dplyr::mutate(DENSITY_transect = ABUNDANCE/METERS_COMPLETED) 
-    } else{ 
-      dens <- abund %>% 
+      dens <- abund %>% dplyr::mutate(DENSITY_transect = ABUNDANCE/METERS_COMPLETED)
+    } else{
+      dens <- abund %>%
       dplyr::mutate(DENSITY = ABUNDANCE/METERS_COMPLETED) %>%
       dplyr::select(-ABUNDANCE, -METERS_COMPLETED)
     }
     return(dens)
   }
-
   
   #### to get distinct species and species names ####
   spp_helper <- function(spp_data){
@@ -99,22 +98,22 @@ NCRMP_DRM_calculate_colony_density <- function(project = "NULL", region, species
   ####Main Helper Function: Process dens data####
   process_density_data <- function(data, groups, transect_2 = FALSE){
     data %>%
-      dplyr::filter(!(SUB_REGION_NAME %in% c("Marquesas", "Marquesas-Tortugas Trans")), 
-                    JUV == 0) %>% 
-      mutate(PROT = as.factor(PROT)) %>%
+      dplyr::filter(!(SUB_REGION_NAME %in% c("Marquesas", "Marquesas-Tortugas Trans")), JUV == 0) %>%
+      dplyr::mutate(PROT = as.factor(PROT),
+                    LAT_DEGREES = sprintf("%0.4f", LAT_DEGREES),
+                    LON_DEGREES = sprintf("%0.4f", LON_DEGREES)) %>% 
       dplyr::mutate(PRIMARY_SAMPLE_UNIT = as.factor(PRIMARY_SAMPLE_UNIT)) %>%
+      # dplyr::group_by(REGION, SURVEY, YEAR, SUB_REGION_NAME, ADMIN, PRIMARY_SAMPLE_UNIT, LAT_DEGREES, LON_DEGREES, STRAT, HABITAT_CD, PROT, METERS_COMPLETED, SPECIES_CD, SPECIES_NAME) %>%
       dplyr::group_by(across(all_of(groups)))%>%
-      calc_dens(transect_2) %>% 
+      calc_dens(transect_2) %>%
       dplyr::ungroup()
   }
-
+  
   if (project == "NCRMP_DRM" || (project == "NCRMP" && (region == "SEFCRI" || region == "Tortugas"))) {
       
 
-      dat1_1stage <-process_density_data(dat_1stage, groups =  c("REGION", "SURVEY", "YEAR", "SUB_REGION_NAME", "ADMIN", "PRIMARY_SAMPLE_UNIT", "LAT_DEGREES", 
-                                                         "LON_DEGREES", "STRAT", "HABITAT_CD", "MIN_DEPTH", "MAX_DEPTH", "PROT", "METERS_COMPLETED"))
-                         
-
+      dat1_1stage <-process_density_data(dat_1stage, c("REGION", "SURVEY", "YEAR", "SUB_REGION_NAME", "ADMIN",   "PRIMARY_SAMPLE_UNIT", "LAT_DEGREES", "LON_DEGREES", 
+                                                       "STRAT", "HABITAT_CD", "MIN_DEPTH", "MAX_DEPTH", "PROT", "METERS_COMPLETED"))
 
       density_species_1stage <-process_density_data(dat_1stage, groups =   c("REGION", "SURVEY", "YEAR", "SUB_REGION_NAME", "ADMIN", "PRIMARY_SAMPLE_UNIT", "LAT_DEGREES", 
                                                          "LON_DEGREES", "STRAT", "HABITAT_CD",  "PROT", "METERS_COMPLETED", "SPECIES_CD", "SPECIES_NAME"))
@@ -141,7 +140,6 @@ NCRMP_DRM_calculate_colony_density <- function(project = "NULL", region, species
         vars = c("REGION", "SURVEY", "YEAR", "SUB_REGION_NAME", "ADMIN", "PRIMARY_SAMPLE_UNIT", "LAT_DEGREES", "LON_DEGREES", "STRAT", "HABITAT_CD", "PROT"),
         spp = spp_helper(density_species)) %>%
         dplyr::select(REGION, SURVEY, YEAR, SUB_REGION_NAME, ADMIN, PRIMARY_SAMPLE_UNIT, LAT_DEGREES, LON_DEGREES, STRAT, HABITAT_CD, PROT, SPECIES_CD, SPECIES_NAME, DENSITY)
-
 
     } else {
       

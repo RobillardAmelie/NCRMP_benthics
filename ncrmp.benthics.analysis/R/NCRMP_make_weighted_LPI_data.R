@@ -63,6 +63,7 @@ NCRMP_make_weighted_LPI_data <- function(inputdata, region, project = "NULL"){
   
   ### #processing cover data (used by both FL and non-FL regions) ####
   process_cover_data <- function(data, region_is_FL = TRUE) {
+    
     # Group data by YEAR, ANALYSIS_STRATUM, STRAT, PROT (if FL) or cover_group
     if (region_is_FL == TRUE) {
       grouping_vars <- c("YEAR", "ANALYSIS_STRATUM", "STRAT", "PROT", "cover_group")
@@ -102,17 +103,21 @@ NCRMP_make_weighted_LPI_data <- function(inputdata, region, project = "NULL"){
                     n = tidyr::replace_na(n, 0)) %>%
       dplyr::filter(cover_group != "NA")
     
+    region_is_FL = TRUE
+    
     # Merge with NTOT data
     cover_est <- cover_est %>%
+      mutate(PROT = as.factor(PROT)) %>%
       dplyr::full_join(ntot) %>%
       # Calculate weighted estimates and handle missing values
       dplyr::mutate(
         whavcvr = wh * avcvr,
         whsvar = wh^2 * Var,
         n = tidyr::replace_na(n, 0),
-        PROT = ifelse(region_is_FL == TRUE, PROT, NA)  # Set PROT to NA for non-FL regions
+        PROT = if (region_is_FL) PROT else NA_character_,  #Set PROT to NA for non-FL regions 
       ) %>%
       dplyr::filter(cover_group != "NA")
+    
     return(cover_est)
   }
   
@@ -126,13 +131,13 @@ NCRMP_make_weighted_LPI_data <- function(inputdata, region, project = "NULL"){
     cover_est <- process_cover_data(inputdata, region_is_FL = FALSE)
   }
 
+
   ####  strata_means   #### 
   cover_strata <- cover_est %>%
     dplyr::select(REGION, YEAR, ANALYSIS_STRATUM, STRAT, PROT, DEPTH_M, cover_group, n, avcvr, Var, SE, CV_perc) %>%
     dplyr::mutate(n = tidyr::replace_na(n, 0)) %>%
     # replace inf values so we can add the strata means
     dplyr::mutate(CV_perc = case_when(CV_perc == Inf ~ NA_real_, TRUE ~ CV_perc))
-  
   
   ####  Domain Estimates   #### 
   Domain_est <- cover_est %>%
@@ -155,4 +160,5 @@ NCRMP_make_weighted_LPI_data <- function(inputdata, region, project = "NULL"){
   )
   return(output)
 }
+
 

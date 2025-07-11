@@ -31,7 +31,7 @@
 # NCRMP_DRM_calculate_mean_colony_size
 
 # NCRMP Caribbean Benthic analytics team: Groves, Viehman, Williams
-# Last update: Jan 2024
+# Last update: Jul 2026
 
 
 ##############################################################################################################################
@@ -57,8 +57,6 @@
 #' @export
 #'
 #'
-
-
 
 NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, species_filter){
   
@@ -97,14 +95,12 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
         avspr = mean(SPP_RICHNESS, na.rm = TRUE),
         svar = var(SPP_RICHNESS, na.rm = TRUE),
         n = n_distinct(PRIMARY_SAMPLE_UNIT),
-        .groups = "drop"
-      ) %>%
+        .groups = "drop") %>%
       mutate(
         svar = ifelse(svar == 0, 1e-8, svar),
         Var = svar / n,
         std = sqrt(svar),
-        SE = sqrt(Var)
-      ) %>%
+        SE = sqrt(Var) ) %>%
       full_join(ntot, by = c("YEAR", "ANALYSIS_STRATUM", "STRAT")) %>%
       mutate(
         whavspr = wh * avspr,
@@ -137,7 +133,6 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
     ))
   }
   
-
 
   #### HELPER: Calculate weighted density ####
   calc_density <- function(data){
@@ -241,7 +236,6 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
   } #end density
 
 
-
   #### Calculate mortality ####
 
   calc_mortality <- function(data){
@@ -266,7 +260,6 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
                     RUG_CD = NA)  %>%
       dplyr::ungroup()
   }
-
 
   if(datatype == "mortality"){
 
@@ -317,7 +310,6 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
   } #end mortality
 
 
-
   #### Calculate mortality by species ####
 
   calc_mort_by_species <- function(data){
@@ -342,6 +334,7 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
       dplyr::ungroup()
   }
 
+  #### Mortality Species ####
   if(datatype == "mortality_species"){
 
     if(region %in% FL) {
@@ -363,7 +356,6 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
         calc_mort_by_species()
     }
 
-
     # Reformat output
     # strata_means
     mortality_strata_species <-  mortality_est %>%
@@ -373,7 +365,6 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
     ntot_check <- mortality_est %>%
       dplyr::group_by(YEAR, SPECIES_CD) %>%
       dplyr::summarize(wh_sum = sum(wh))
-
 
     ## Domain Estimates
     # region/population means
@@ -428,6 +419,18 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
                     SE_InvSimp = sqrt(Var_InvSimp),
                     SE_Shan = sqrt(Var_Shan))
   }
+  
+  #### Diversity Ntot Helper Function ####
+  diversity_ntot_helper <- function(data){
+    data %>%
+      dplyr::mutate(whavSimp = wh * avSimp,
+                    whavInvSimp = wh * avInvSimp,
+                    whavShan = wh * avShannon,
+                    whvar_Simp = wh^2 * Var_Simp,
+                    whvar_InvSimp = wh^2 * Var_InvSimp,
+                    whvar_Shan = wh^2 * Var_Shan,
+                    n = tidyr::replace_na(n, 0)) 
+  }
   #### Diversity   ####
   if(datatype == "diversity"){
     
@@ -443,40 +446,24 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
         # Merge ntot with diversity_est
         dplyr::full_join(., ntot) %>%
         # stratum estimates
-        dplyr::mutate(whavSimp = wh * avSimp,
-                      whavInvSimp = wh * avInvSimp,
-                      whavShan = wh * avShannon,
-                      whvar_Simp = wh^2 * Var_Simp,
-                      whvar_InvSimp = wh^2 * Var_InvSimp,
-                      whvar_Shan = wh^2 * Var_Shan,
-                      n = tidyr::replace_na(n, 0))  %>%
+        diversity_ntot_helper() %>%
         dplyr::ungroup()
     }
     
     if(region %in% FGB | region %in% Carib) {
-      
       # Calculate avdiv, svar, n and std
       diversity_est <- inputdata %>%
         # group by analysis level strata
         dplyr::mutate(ANALYSIS_STRATUM = STRAT) %>%
         diversity_helper_function()
       
-      
       diversity_est <- diversity_est %>%
         # Merge ntot with diversity_est
         dplyr::full_join(., ntot) %>%
+        diversity_ntot_helper() %>%
         # stratum estimates
-        dplyr::mutate(whavSimp = wh * avSimp,
-                      whavInvSimp = wh * avInvSimp,
-                      whavShan = wh * avShannon,
-                      whvar_Simp = wh^2 * Var_Simp,
-                      whvar_InvSimp = wh^2 * Var_InvSimp,
-                      whvar_Shan = wh^2 * Var_Shan,
-                      n = tidyr::replace_na(n, 0),
-                      # Add the following to match FL format temporarily
-                      PROT = NA,
-                      RUG_CD = NA)  %>%
-        dplyr::ungroup()
+        dplyr::mutate(PROT = NA,
+                      RUG_CD = NA)  %>%  dplyr::ungroup()
     }
   
     # Reformat output
@@ -510,9 +497,8 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
       "Domain_est_div" = Domain_est)
     
     return(output)
-
   }
-  
+
 
   ####Calculate Disease####
 
@@ -543,7 +529,7 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
                     n_sites = tidyr::replace_na(n_sites, 0))  %>%
       dplyr::ungroup()
   }
-
+  
   if(datatype == "disease"){
 
     if(region %in% FL) {
@@ -601,7 +587,8 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
     return(output)
   } #end disase
 
-  ####Calculate Size ####
+  
+  ####Helper Function: Calculate Size ####
   calc_size <- function(data){
   data %>%
     dplyr::summarise(
@@ -643,6 +630,7 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
     dplyr::ungroup()
 }
 
+  #### Datatype = Size ####
   if(datatype == "size"){
 
     if(region %in% FL && project == "NCRMP"){
@@ -753,7 +741,7 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
   } #End size
 
 
-  ###Calculator Size Species ####
+  ### Helper: Size Species ####
 
   calc_size_species <- function(data) {
     data%>%
@@ -787,6 +775,7 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
       dplyr::ungroup()
   }
 
+  #### Size Species ####
   if(datatype == "size_species"){
 
     if(region %in% FL && project == "NCRMP_DRM"){
@@ -910,7 +899,6 @@ NCRMP_make_weighted_demo_data <- function(project, inputdata, region, datatype, 
         "Domain_est_species" = Domain_est_species,
         "ntot_check" = ntot_check)
     }
-
     return(output)
   }
 }

@@ -20,7 +20,7 @@
 #
 
 # NCRMP Caribbean Benthic analytics team: Groves, Viehman, Williams, Krampitz, Sturm
-# Last update: Mar 2025
+# Last update: Jul 2025
 
 
 ##############################################################################################################################
@@ -264,7 +264,6 @@ load_NCRMP_DRM_demo_data <- function(project = "NULL", region, species_filter = 
       dat_1stage <- dat_1stage %>% dplyr::filter(SPECIES_CD %in% SEFCRI_filter)
     }
   }
-
 
   ####Data Processing Florida Keys NCRMP####
   if(region == "FLK"&& project == "NCRMP" || project == "NULL"){

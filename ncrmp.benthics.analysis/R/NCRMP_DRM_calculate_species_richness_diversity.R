@@ -54,34 +54,37 @@
 #' @export
 #'
 #'
+
 NCRMP_DRM_calculate_species_richness_diversity <- function(project, region){
   #call vegan library
   library(vegan)
   
-  # Define regional groups
+  ####  Define regional groups   #### 
   FL <- c("SEFCRI", "FLK", "Tortugas")
   FGB <- "FGB"
   Carib <- c("STTSTJ", "STX", "PRICO")
   
-  # Load data
+  #### Load data   #### 
   tmp <- load_NCRMP_DRM_demo_data(project = project, region = region)
   list2env(tmp, envir = environment())
   
+  #### Helper Function: Format Geospatial/Prot Data   #### 
+  reformat_geospatial_data <- function(data){
+    data %>%    dplyr::mutate(LAT_DEGREES = sprintf("%0.4f", LAT_DEGREES),
+                              LON_DEGREES = sprintf("%0.4f", LON_DEGREES),
+                              PROT = as.factor(PROT))
+  }
 
+  # apply helper function to format data
   dat_1stage <- dat_1stage %>%
-    dplyr::mutate(LAT_DEGREES = sprintf("%0.4f", LAT_DEGREES),
-                  LON_DEGREES = sprintf("%0.4f", LON_DEGREES),
-                  PROT = as.factor(PROT))
+    reformat_geospatial_data() 
   
-  if(length(tmp) > 1){
-    dat_2stage <- dat_2stage %>%
-      dplyr::mutate(LAT_DEGREES = sprintf("%0.4f", LAT_DEGREES),
-                    LON_DEGREES = sprintf("%0.4f", LON_DEGREES),
-                    PROT = as.factor(PROT))
+  if(length(tmp) > 1){ dat_2stage <- dat_2stage %>%
+      reformat_geospatial_data() 
   }
   
-  dat <- switch(region,
-                          "SEFCRI" = dplyr::bind_rows(dat_1stage, dat_2stage),
+  #### Bind the Data ####
+  dat <- switch(region,"SEFCRI" = dplyr::bind_rows(dat_1stage, dat_2stage),
                           "FLK" = if (project == "NCRMP_DRM") dplyr::bind_rows(dat_1stage, dat_2stage) else dat_1stage,
                           "Tortugas" = dplyr::bind_rows(dat_1stage, dat_2stage),
                           "STTSTJ" = dat_1stage,
@@ -121,54 +124,43 @@ NCRMP_DRM_calculate_species_richness_diversity <- function(project, region){
   
   
   
-  # Clean up species names
-  
-  # this get used later for diversity
+  ####  Clean up species names   #### 
   dat <- dat %>%
-    # FILTER OUT NO CORAL
     dplyr::filter(SPECIES_CD != "NO. SCLE") %>%
     recode_and_clean_species()
   
   dat_1stage <- dat_1stage %>%
-    # FILTER OUT NO CORAL
     dplyr::filter(SPECIES_CD != "NO. SCLE") %>%
     recode_and_clean_species()
   
   
-  if(project == "NCRMP_DRM" ||
-     project == "NCRMP" && region == "SEFCRI" ||
-     project == "NCRMP" && region == "Tortugas") {
+  if(project == "NCRMP_DRM" || project == "NCRMP" && region == "SEFCRI" ||   project == "NCRMP" && region == "Tortugas") {
     
     dat_2stage <- dat_2stage %>%
-      # FILTER OUT NO CORAL
       dplyr::filter(SPECIES_CD != "NO. SCLE") %>%
       recode_and_clean_species()
   }
   
-  # Calculate species richness by site
-  
-  # Create a list of species present
-  
-  
-  if(project == "NCRMP_DRM" ||
-     project == "NCRMP" && region == "SEFCRI"||
-     project == "NCRMP" && region == "Tortugas") {
-    # Clean up species
-    species_1stage <- dat_1stage %>%
+  #### Helper Function: Get Distinct Species ####
+  get_distinct_species <- function(data){
+    data %>%
       dplyr::filter(N == 1,
                     !grepl('SPE.', SPECIES_CD),
                     !grepl('ANCX', SPECIES_CD),
                     SPECIES_CD != "OTH CORA") %>% # Filter out SPE
       dplyr::select(SPECIES_NAME, SPECIES_CD) %>%
       dplyr::distinct(SPECIES_NAME, SPECIES_CD)
+  }
+  
+  
+  ####  Calculate species richness by site   #### 
+  if(project == "NCRMP_DRM" || project == "NCRMP" && region == "SEFCRI" ||   project == "NCRMP" && region == "Tortugas") {
+    # Clean up species
+    species_1stage <- dat_1stage %>%
+      get_distinct_species() 
     
     species_2stage <- dat_2stage %>%
-      dplyr::filter(N == 1,
-                    !grepl('SPE.', SPECIES_CD),
-                    !grepl('ANCX', SPECIES_CD),
-                    SPECIES_CD != "OTH CORA") %>%  # Filter out SPE
-      dplyr::select(SPECIES_NAME, SPECIES_CD) %>%
-      dplyr::distinct(SPECIES_NAME, SPECIES_CD)
+      get_distinct_species() 
     
     species_list <- species_1stage %>%
       rbind(., species_2stage) %>%
@@ -209,12 +201,7 @@ NCRMP_DRM_calculate_species_richness_diversity <- function(project, region){
     
     # Clean up species
     species_list <- dat_1stage %>%
-      dplyr::filter(N == 1,
-                    !grepl('SPE.', SPECIES_CD),
-                    !grepl('ANCX', SPECIES_CD),
-                    SPECIES_CD != "OTH CORA") %>% # Filter out SPE
-      dplyr::select(SPECIES_NAME, SPECIES_CD) %>%
-      dplyr::distinct(SPECIES_NAME, SPECIES_CD) %>%
+      get_distinct_species() %>%
       unique(.)
     
     dat1_1stage <- dat_1stage %>%
@@ -238,22 +225,15 @@ NCRMP_DRM_calculate_species_richness_diversity <- function(project, region){
   
   richness_site <- dat1
   
-  # Run through the weighting function
-  tmp  <- NCRMP_make_weighted_demo_data(project,
-                                        inputdata = richness_site,
-                                        region,
-                                        datatype = "richness",
-                                        species_filter = "FALSE")
+  #### Run through the weighting function   #### 
+  tmp  <- NCRMP_make_weighted_demo_data(project, inputdata = richness_site,  region,    datatype = "richness",  species_filter = "FALSE")
   list2env(tmp, envir = environment())
-  
-  
+
   
   ###### Calculate coral diversity with Simpson, Inv. Simpson and Shannon Indices #####
   
   
-  if(project == "NCRMP_DRM" ||
-     project == "NCRMP" && region == "SEFCRI"||
-     project == "NCRMP" && region == "Tortugas"){
+  if(project == "NCRMP_DRM" || project == "NCRMP" && region == "SEFCRI"||  project == "NCRMP" && region == "Tortugas"){
     
     # Site level -- when there is 2 stage data, this is station level
     sites <- dat %>%
@@ -351,12 +331,8 @@ NCRMP_DRM_calculate_species_richness_diversity <- function(project, region){
       dplyr::ungroup()
   }
   
-  # Calculate regional diversity using weighting function
-  tmp  <- NCRMP_make_weighted_demo_data(project,
-                                        inputdata = species_diversity_site,
-                                        region,
-                                        datatype = "diversity",
-                                        species_filter = "FALSE")
+  #### Calculate regional diversity using weighting function   #### 
+  tmp  <- NCRMP_make_weighted_demo_data(project, inputdata = species_diversity_site, region, datatype = "diversity",species_filter = "FALSE")
   list2env(tmp, envir = environment())
   
   

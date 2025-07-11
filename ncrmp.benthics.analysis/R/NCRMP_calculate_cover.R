@@ -225,7 +225,7 @@ NCRMP_calculate_cover <- function(region, project = "NCRMP"){
   cover_check_site <- percent_cover_site %>%
     dplyr::group_by(REGION, YEAR, PRIMARY_SAMPLE_UNIT, STRAT) %>%
     dplyr::summarise(Cover = sum(Percent_Cvr))
-  
+
   #### call LPI weighting function   ####
   lpi_data  <- NCRMP_make_weighted_LPI_data(inputdata = cover_group_site_complete, region = region, project = project)
   list2env(lpi_data, envir = .GlobalEnv)
