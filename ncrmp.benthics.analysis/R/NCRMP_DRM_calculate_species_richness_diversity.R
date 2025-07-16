@@ -78,6 +78,7 @@ NCRMP_DRM_calculate_species_richness_diversity <- function(project, region){
   # apply helper function to format data
   dat_1stage <- dat_1stage %>%
     reformat_geospatial_data() 
+
   
   if(length(tmp) > 1){ dat_2stage <- dat_2stage %>%
       reformat_geospatial_data() 
@@ -93,6 +94,7 @@ NCRMP_DRM_calculate_species_richness_diversity <- function(project, region){
                           "FGB" = dat_1stage
   )
   
+
   #### Helper Function: Recode species names/codes   #### 
   recode_and_clean_species <- function(data) {
     data %>%
@@ -224,6 +226,7 @@ NCRMP_DRM_calculate_species_richness_diversity <- function(project, region){
   }
   
   richness_site <- dat1
+
   
   #### Run through the weighting function   #### 
   tmp  <- NCRMP_make_weighted_demo_data(project, inputdata = richness_site,  region,    datatype = "richness",  species_filter = "FALSE")
@@ -348,5 +351,4 @@ NCRMP_DRM_calculate_species_richness_diversity <- function(project, region){
   )
   return(output)
 }
-
 
