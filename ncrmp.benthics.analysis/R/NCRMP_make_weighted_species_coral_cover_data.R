@@ -21,6 +21,8 @@
 # NCRMP_colony_percent_cover
 #
 
+
+
 # NCRMP Caribbean Benthic analytics team: Groves, Viehman, Williams
 # Last update: Mar 2025
 
@@ -49,14 +51,14 @@
 #' @export
 #'
 #'
+#'
 
 NCRMP_make_weighted_species_coral_cover_data <- function(region, sppcvr, project = "NULL") {
   
   ####Load NTOT  ####
   ntot <- load_NTOT(region = region, inputdata = sppcvr,project = project)
   
-  
-    ####Filter Cover Cats####
+  ####Filter Cover Cats####
     filter_cover_cats <- function(data){
       data %>%
         dplyr::filter(cover_group == "HARD CORALS") %>%
@@ -69,13 +71,11 @@ NCRMP_make_weighted_species_coral_cover_data <- function(region, sppcvr, project
   
     #Filtered sppcvr dataset (reduce number of calls to above function)
     filtered_sppcvr <- filter_cover_cats(sppcvr)
-    
-  ## Calculate weighted means and cv
+     
   ####strata_means####
   strata_means <- filtered_sppcvr %>%
-    dplyr::mutate(SPECIES_NAME = COVER_CAT_NAME,
-                  cvr = Percent_Cvr) %>%
-    dplyr::group_by(REGION, YEAR, SPECIES_NAME, ANALYSIS_STRATUM) %>%  # removed  DEPTH_STRAT, b/c it's in STRAT_ANALYSIS
+    dplyr::mutate(SPECIES_NAME = COVER_CAT_NAME, cvr = Percent_Cvr) %>%
+    dplyr::group_by(REGION, YEAR, SPECIES_NAME, ANALYSIS_STRATUM) %>% 
     # sample variance of density in stratum
     dplyr::summarize(mean = mean(cvr),
                      svar = var(cvr),
@@ -93,16 +93,14 @@ NCRMP_make_weighted_species_coral_cover_data <- function(region, sppcvr, project
                   CV_perc = (SE/mean)*100,
                   CV = (SE/mean))
   
-  
   ####region/population means####
   region_means <- strata_means %>%
-    dplyr::left_join(ntot) %>%
+    dplyr::left_join(ntot) %>% #add in ntot
     dplyr::mutate(wh_mean = wh*mean,
                   wh_var = wh^2*Var) %>%
     dplyr::group_by(REGION, YEAR, SPECIES_NAME) %>%
     dplyr::summarize(avCvr = sum(wh_mean),
-                     Var = sum(wh_var,
-                               na.rm = TRUE),
+                     Var = sum(wh_var,na.rm = TRUE),
                      SE = sqrt(Var),
                      CV_perc = (SE/avCvr)*100,
                      CV = (SE/avCvr),
@@ -120,7 +118,7 @@ NCRMP_make_weighted_species_coral_cover_data <- function(region, sppcvr, project
     # remove sites where species not present
     dplyr::filter(cvr > 0) %>%
     dplyr::group_by(REGION, YEAR, SPECIES_NAME, ANALYSIS_STRATUM) %>%
-    dplyr::summarize(n_sites = n(), .groups = "keep")
+    dplyr::summarize(n_sites = n(), .groups = "keep") %>%
     dplyr::ungroup()
   
   ####Region Presence####
@@ -145,5 +143,5 @@ NCRMP_make_weighted_species_coral_cover_data <- function(region, sppcvr, project
     "strata_means" = strata_means)
   
   return(output)
-  
 }
+

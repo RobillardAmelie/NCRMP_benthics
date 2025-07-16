@@ -21,7 +21,7 @@
 #
 
 # NCRMP Caribbean Benthic analytics team: Groves, Viehman, Williams
-# Last update: Feb 2025
+# Last update: Jun 2025
 
 
 ##############################################################################################################################
@@ -53,6 +53,16 @@ NCRMP_DRM_calculate_disease_prevalence_sites <- function(project, region, specie
   tmp <- load_NCRMP_DRM_demo_data(project = project, region = region,species_filter = species_filter)
   list2env(tmp, envir = environment())
 
+  ####Helper Function: ensure correct disease coding ####
+  code_disease <- function(data){
+    data %>% mutate(DISEASE = case_when(
+      DISEASE == "absent" ~ "A",
+      DISEASE == "fast" ~ "F",
+      DISEASE == "slow" ~ "S",
+      DISEASE == "present" ~ "P",
+      TRUE ~ DISEASE  ) )
+  }
+  
   ####Helper Function: change dtypes####
   mutate_formatting <- function(data){
     data %>%
@@ -61,7 +71,6 @@ NCRMP_DRM_calculate_disease_prevalence_sites <- function(project, region, specie
                     LON_DEGREES = sprintf("%0.4f", LON_DEGREES))
   }
 
-  
   ####Helper Function: process data ####
   process_data <- function(data){
     data %>%
@@ -92,13 +101,11 @@ NCRMP_DRM_calculate_disease_prevalence_sites <- function(project, region, specie
       dplyr::ungroup()
   }
 
-  # Calculate site level disease prevalence
-
-
+  #### Calculate site level disease prevalence   #### 
   if (project == "NCRMP_DRM" || (project == "NCRMP" && (region == "SEFCRI" || region == "Tortugas"))) {
 
     dat_1stage <- dat_1stage %>% mutate_formatting()
-    dat_2stage <- dat_2stage %>% mutate_formatting()
+    dat_2stage <- dat_2stage %>% code_disease() %>% mutate_formatting()
 
     dis_ble_prev_site <- dplyr::bind_rows(dat_1stage, dat_2stage) %>%
       process_data()%>%
@@ -106,22 +113,21 @@ NCRMP_DRM_calculate_disease_prevalence_sites <- function(project, region, specie
       summarize_disease_bleaching()
 
   } else {
-
-    dis_ble_prev_site <- dat_1stage %>%
+  dis_ble_prev_site <- dat_1stage %>%
       mutate_formatting()%>%
       process_data()%>%
       dplyr::group_by(SURVEY, REGION, YEAR, SUB_REGION_NAME, PRIMARY_SAMPLE_UNIT, LAT_DEGREES, LON_DEGREES, STRAT, HABITAT_CD, PROT) %>%
       summarize_disease_bleaching()
   }
-
+  #### Helper function to summarise strata level bleach/disease####
   sum_strata <- function(data){
-    data %>%
+    data %>% 
       dplyr::group_by(REGION, YEAR, ANALYSIS_STRATUM) %>%
       dplyr::summarise(dis_sites = sum(dis_present),
                        ble_sites = sum(ble_present),
                        total_sites = length(unique(PRIMARY_SAMPLE_UNIT)))
   }
-
+  #### Helper function to summarise site level bleach/disease####
   sum_sites <- function(data) {
     data %>%
       dplyr::group_by(REGION, YEAR) %>%
@@ -131,7 +137,6 @@ NCRMP_DRM_calculate_disease_prevalence_sites <- function(project, region, specie
                        dis_prev = (dis_sites/total_sites)*100,
                        ble_prev = (ble_sites/total_sites)*100)
   }
-
 
   if(region == "SEFCRI" | region == "FLK" | region == "Tortugas"){
     dis_ble_prev_strata <- dis_ble_prev_site %>%
@@ -148,7 +153,6 @@ NCRMP_DRM_calculate_disease_prevalence_sites <- function(project, region, specie
     dis_ble_prev_region <- dis_ble_prev_strata %>%
       sum_sites()
   }
-
 
   ####Export####
   output <- list(

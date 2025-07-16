@@ -51,13 +51,12 @@
 #'
 #'
 
-
 # function to Calculate weights based on the most recent sampling grid
 NCRMP_make_weighted_density_CV_data <- function(region, sppdens, project = "NULL") {
 
   ####Load NTOT####
   ntot <- load_NTOT(region = region, inputdata = sppdens, project = project)
-
+  
   #### Call Function to get Species ####
   coral_species <-  species_for_CV_and_occurrence(region)
 

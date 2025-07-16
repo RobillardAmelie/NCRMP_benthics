@@ -20,7 +20,7 @@
 #
 
 # NCRMP Caribbean Benthic analytics team: Groves, Viehman, Williams, Krampitz, Sturm
-# Last update: Mar 2025
+# Last update: Jul 2025
 
 
 ##############################################################################################################################
@@ -45,8 +45,9 @@
 #'
 #'
 #'
-load_NCRMP_DRM_demo_data <- function(project = "NULL", region, species_filter = "NULL"){
 
+load_NCRMP_DRM_demo_data <- function(project = "NULL", region, species_filter = "NULL"){
+  
   #### clean data function ####
   clean_data <- function(data, survey){
     data<- data %>%
@@ -58,7 +59,6 @@ load_NCRMP_DRM_demo_data <- function(project = "NULL", region, species_filter = 
   recode_and_clean_species <- function(data) {
     data %>%
       dplyr::mutate(
-        # Recoding SPECIES_CD based on specific values
         SPECIES_CD = dplyr::case_when(
           SPECIES_CD == "MEAN JACK" ~ "MEA JACK",
           SPECIES_CD == "DIP STRI" ~ "PSE STRI",
@@ -66,7 +66,6 @@ load_NCRMP_DRM_demo_data <- function(project = "NULL", region, species_filter = 
           SPECIES_CD == "CLA ARBU" ~ "CLA ABRU",
           TRUE ~ SPECIES_CD
         ),
-        # Recoding SPECIES_NAME based on specific values
         SPECIES_NAME = dplyr::case_when(
           SPECIES_NAME == "Undaria spp" ~ "Agaricia spp",
           SPECIES_CD == "PSE STRI" ~ "Pseudodiploria strigosa",
@@ -74,14 +73,7 @@ load_NCRMP_DRM_demo_data <- function(project = "NULL", region, species_filter = 
           SPECIES_CD == "MEA JACK" ~ "Meandrina jacksoni",
           SPECIES_CD == "CLA ABRU" ~ "Cladocora arbuscula",
           TRUE ~ SPECIES_NAME
-        ),
-        # Recoding SPECIES_NAME based on recoded SPECIES_CD
-        SPECIES_NAME = dplyr::case_when(
-          SPECIES_CD == "PSE STRI" ~ "Pseudodiploria strigosa",
-          SPECIES_CD == "PSE CLIV" ~ "Pseudodiploria clivosa",
-          SPECIES_CD == "CLA ABRU" ~ "Cladocora arbuscula",
-          TRUE ~ SPECIES_NAME
-        ),
+        )
       )
   }
 
@@ -114,12 +106,13 @@ load_NCRMP_DRM_demo_data <- function(project = "NULL", region, species_filter = 
       clean_data(SEFCRI_2016_coral_demographics, "NCRMP"),
       clean_data(SEFCRI_2018_coral_demographics, "NCRMP"),
       clean_data(SEFCRI_2020_coral_demographics, "NCRMP") %>% dplyr::mutate(YEAR = 2020),
-      clean_data(SEFCRI_2022_coral_demographics, "NCRMP")
+      clean_data(SEFCRI_2022_coral_demographics, "NCRMP"), 
+      clean_data(SEFCRI_2024_coral_demographics, "NCRMP")
     )
     # Load and clean two stage datasets
     two_stage_data <- list(
       clean_data(SEFCRI_2014_2stage_coral_demographics, "NCRMP"),
-      DRM_SEFCRI_2014_2022_2stage_coral_demographics %>%
+      DRM_SEFCRI_2014_2024_2stage_coral_demographics %>%
         mutate(STRAT = dplyr::case_when(STRAT == "NEAR2"~"NEAR1", TRUE ~ as.character(STRAT))) %>%
         mutate(SURVEY = "DRM", PRIMARY_SAMPLE_UNIT = as.factor(PRIMARY_SAMPLE_UNIT)) %>%
         filter(STRAT != 'NA0')
@@ -148,13 +141,13 @@ load_NCRMP_DRM_demo_data <- function(project = "NULL", region, species_filter = 
       clean_data(FLK_2018_coral_demographics, "NCRMP"),
       clean_data(FLK_2020_coral_demographics, "NCRMP") %>% mutate(YEAR = 2020),
       clean_data(FLK_2022_coral_demographics, "NCRMP") %>%
-        update_protection_status(grid_df = FLK_2020_sample_frame@data) #call NEW function to update PROT/protection status for FLK
-      #clean_data(FLK_2024_coral_demographics, "NCRMP)
+        update_protection_status(grid_df = FLK_2020_sample_frame@data), #call NEW function to update PROT/protection status for FLK
+      clean_data(FLK_2024_coral_demographics, "NCRMP")
       )
 
     #load and clean two stage datasets
     two_stage_data <- list(
-      clean_data(DRM_FLK_2014_2022_2stage_coral_demographics, "DRM") %>% filter(!is.na(MAPGRID_NR), !is.na(STRAT))
+      clean_data(DRM_FLK_2014_2024_2stage_coral_demographics, "DRM") %>% filter(!is.na(MAPGRID_NR), !is.na(STRAT))
     )
 
     # Process data
@@ -222,12 +215,14 @@ load_NCRMP_DRM_demo_data <- function(project = "NULL", region, species_filter = 
     one_stage_data <- list(
       clean_data(TortugasMarq_2014_coral_demographics, "NCRMP"),
       clean_data(TortugasMarq_2016_coral_demographics, "NCRMP"),
-      clean_data(Tortugas_2022_coral_demographics, "NCRMP")
+      clean_data(Tortugas_2022_coral_demographics, "NCRMP"),
+      clean_data(Tortugas_2024_coral_demographics, "NCRMP")
     )
+    
 
     two_stage_data <- list(
       clean_data(Tortugas_2018_coral_demographics, "NCRMP"),
-      clean_data(DRM_Tort_2014_2022_2stage_coral_demographics, "DRM") %>% filter_out_dupes(),
+      clean_data(DRM_Tort_2014_2024_2stage_coral_demographics, "DRM") %>% filter_out_dupes(),
       Tortugas_2020_coral_demographics %>%
         dplyr::mutate(SURVEY = dplyr::case_when(MONTH == 8 ~ "NCRMP", MONTH == 9 ~ "DRM"), # assign DRM/NCRMP data to DRM so it can be combined with the second stage version of the data in the DRM cruise
                       STRAT = dplyr::case_when(STRAT == "T08" & PROT == 2 ~ 'T09', TRUE ~ as.character(STRAT))) %>%
@@ -254,7 +249,7 @@ load_NCRMP_DRM_demo_data <- function(project = "NULL", region, species_filter = 
       recode_and_clean_species()
 
 
-    one_stage_data <- dplyr::bind_rows(SEFCRI_2016_coral_demographics, SEFCRI_2018_coral_demographics, SEFCRI_2020_coral_demographics %>% dplyr::mutate(YEAR = 2020), SEFCRI_2022_coral_demographics) %>%
+    one_stage_data <- dplyr::bind_rows(SEFCRI_2016_coral_demographics, SEFCRI_2018_coral_demographics, SEFCRI_2020_coral_demographics %>% dplyr::mutate(YEAR = 2020), SEFCRI_2022_coral_demographics,SEFCRI_2024_coral_demographics) %>%
       clean_data(survey = "NCRMP") %>%
       recode_and_clean_species()
 
@@ -270,7 +265,6 @@ load_NCRMP_DRM_demo_data <- function(project = "NULL", region, species_filter = 
     }
   }
 
-
   ####Data Processing Florida Keys NCRMP####
   if(region == "FLK"&& project == "NCRMP" || project == "NULL"){
 
@@ -280,7 +274,8 @@ load_NCRMP_DRM_demo_data <- function(project = "NULL", region, species_filter = 
       clean_data(FLK_2018_coral_demographics, survey = "NCRMP"),
       clean_data(FLK_2020_coral_demographics, survey = "NCRMP") %>% dplyr::mutate(YEAR = 2020),
       clean_data(FLK_2022_coral_demographics, survey = "NCRMP") %>%
-        update_protection_status(grid_df = FLK_2020_sample_frame@data)
+        update_protection_status(grid_df = FLK_2020_sample_frame@data),
+      clean_data(FLK_2024_coral_demographics, survey = "NCRMP")
     )
 
     dat_1stage <- dplyr::bind_rows(datasets) %>%
@@ -304,7 +299,8 @@ load_NCRMP_DRM_demo_data <- function(project = "NULL", region, species_filter = 
         mutate(PRIMARY_SAMPLE_UNIT = as.factor(PRIMARY_SAMPLE_UNIT)) %>%
         dplyr::mutate(SURVEY = "NCRMP/DRM", YEAR = 2020,
                       STRAT = dplyr::case_when(STRAT == "T08" & PROT == 2 ~ 'T09', TRUE ~ as.character(STRAT))),
-      Tortugas_2022_coral_demographics %>% clean_data(survey = "NCRMP")
+      Tortugas_2022_coral_demographics %>% clean_data(survey = "NCRMP"),
+      Tortugas_2024_coral_demographics %>% clean_data(survey = "NCRMP")
     )
 
     two_stage_data <- Tortugas_2018_coral_demographics %>% clean_data(survey = "NCRMP/DRM")
@@ -418,7 +414,6 @@ load_NCRMP_DRM_demo_data <- function(project = "NULL", region, species_filter = 
       "dat_2stage" = dat_2stage)
 
   } else {
-
     output <- list(
       "dat_1stage" = dat_1stage)
   }

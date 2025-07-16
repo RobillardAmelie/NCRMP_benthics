@@ -12,7 +12,6 @@
 #
 #
 
-
 # CallS:
 # analysis ready data
 
@@ -21,7 +20,7 @@
 #
 
 # NCRMP Caribbean Benthic analytics team: Groves, Viehman, Williams, Krampitz
-# Last update: Feb 2025
+# Last update: Jul 2025
 
 
 ##############################################################################################################################
@@ -44,38 +43,41 @@
 #'
 #'
 
+NCRMP_colony_percent_cover <- function(region, ptitle, year, file_path, project = "NULL"){
+  #one big change in this function is the addition of the year parameter, which allows for easier retreval of datasets and not having the manually change the code every year
+  
+  ####Helper Function that gets the Dataset ####
+  
+  #this doesn't require constant updating of the datasets
+  get_dataset <- function(region, year, project) {
+    if (region == "Tortugas"){ region = "Tort"}
+    if (region == "FGB") { region = "FGBNMS"}
+    year_short <- year %% 100
+    
+    string_version <- paste(project,  region, "2014", year_short, "percent_cover_species", sep = "_")
+    get(string_version, envir = .GlobalEnv)
+  }
+  
+  ####Get Dataset####
+  
+  #if the project isn't actually entered default to ncrmp 
+  if (project == "NULL"){ project = "NCRMP"}
+  #call the helper function to get the dataset~
+  sppcvr_dataset <- get_dataset(region = region, project = project, year = year)
 
-NCRMP_colony_percent_cover <- function(region, ptitle, file_path, project = "NULL"){
-
- ####Get Dataset####
-
-  sppcvr_dataset <- switch(region,
-              "FLK" = switch(project,
-                        "NCRMP" = NCRMP_FLK_2014_22_percent_cover_species,
-                        "NULL" = NCRMP_FLK_2014_22_percent_cover_species,
-                        "MIR" = MIR_2022_percent_cover_species_DUMMY,
-                        stop("Unknown project for FLK")),
-              "Tortugas" = NCRMP_Tort_2014_22_percent_cover_species,
-              "SEFCRI" = NCRMP_SEFCRI_2014_22_percent_cover_species,
-              "PRICO" = NCRMP_PRICO_2014_23_percent_cover_species,
-              "STTSTJ" = NCRMP_STTSTJ_2013_23_percent_cover_species,
-              "STX" = NCRMP_STX_2015_23_percent_cover_species,
-              "FGB" = NCRMP_FGBNMS_2013_24_percent_cover_species,
-              stop("Unknown region"))
-
-
-  #get weighted data
+  #### get weighted data   #### 
   weighted_data <- NCRMP_make_weighted_species_coral_cover_data(region = region, sppcvr = sppcvr_dataset, project = project)
-
-  # unpack list
   list2env(weighted_data, envir = .GlobalEnv)
 
-
+  #### Find Latest Sampling Year   #### 
+  latest_year <- max(region_means$YEAR, na.rm = TRUE)
+  
+  #### Create Plot   #### 
   g1 <-  region_means %>%
     dplyr::ungroup() %>%
     # exclude occurrences of 0
     dplyr::filter(avCvr > 0,
-                  YEAR >= 2022) %>%
+                  YEAR >= latest_year) %>%
     ggplot(.,aes(x = reorder(SPECIES_NAME, avCvr),
                y = avCvr,
                fill = 'even')) +
@@ -94,8 +96,7 @@ NCRMP_colony_percent_cover <- function(region, ptitle, file_path, project = "NUL
                                     face = "bold")) +
     coord_flip() +
     guides(fill = "none")
-
-
+  
   ggsave(filename = paste(region_means$REGION[1], "species_cover.jpeg", sep = "_"),
          path = file_path,
          plot = g1,

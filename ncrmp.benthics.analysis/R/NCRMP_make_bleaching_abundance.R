@@ -43,8 +43,6 @@
 
 NCRMP_make_bleaching_abundance <- function(){
 
-
-
   # Load NCRMP all regions, all years demo data
 
   dat <- NCRMP_demo_All_regions_years %>%
@@ -89,11 +87,7 @@ NCRMP_make_bleaching_abundance <- function(){
 
   NCRMP_bleaching_abundance_Allyears_Allregions <- dat
 
-  ################
-  # Export
-  ################
-
-  # Create list to export
+  #### Export ####
   output <- list(
     "NCRMP_bleaching_abundance_Allyears_Allregions" = NCRMP_bleaching_abundance_Allyears_Allregions)
 
