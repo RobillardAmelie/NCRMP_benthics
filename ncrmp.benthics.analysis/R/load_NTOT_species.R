@@ -99,7 +99,8 @@ load_NTOT_species <- function(region, inputdata, project){
         flk_ntot(FLK_2016_NTOT),
         flk_ntot(FLK_2018_NTOT),
         flk_ntot(FLK_2020_NTOT),
-        flk_ntot(FLK_2022_NTOT)
+        flk_ntot(FLK_2022_NTOT),
+        flk_ntot(FLK_2024_NTOT)
       )
 
       # create a data frame of the full NTOTs for FLK
@@ -133,7 +134,8 @@ load_NTOT_species <- function(region, inputdata, project){
                                                                                              STRAT == "PTDP0"~"OFFR0",
                                                                                              STRAT == "PTDP1"~"OFFR1", TRUE ~ as.character(STRAT))),
                                    SEFL_2020_NTOT,
-                                   SEFL_2022_NTOT) %>%
+                                   SEFL_2022_NTOT,
+                                   SEFL_2024_NTOT) %>%
         dplyr::mutate(REGION = "SEFCRI",
                       ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " "))
 
@@ -158,7 +160,8 @@ load_NTOT_species <- function(region, inputdata, project){
                                    SEFL_2016_NTOT, SEFL_2018_NTOT %>% dplyr::mutate(YEAR = 2017),
                                    SEFL_2018_NTOT, SEFL_2018_NTOT %>% dplyr::mutate(YEAR = 2019),
                                    SEFL_2020_NTOT, SEFL_2020_NTOT %>% dplyr::mutate(YEAR = 2021),
-                                   SEFL_2022_NTOT) %>%
+                                   SEFL_2022_NTOT, SEFL_2024_NTOT %>% dplyr::mutate(YEAR = 2023),
+                                   SEFL_2024_NTOT) %>%
         dplyr::mutate(REGION = "SEFCRI",
                       ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " "))
 
@@ -185,7 +188,8 @@ load_NTOT_species <- function(region, inputdata, project){
                                    Tort_2016_NTOT,
                                    Tort_2018_NTOT,
                                    Tort_2020_NTOT,
-                                   Tort_2022_NTOT) %>%
+                                   Tort_2022_NTOT,
+                                   Tort_2024_NTOT) %>%
         dplyr::mutate(REGION = "Tortugas",
                       ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " "))
 
@@ -211,7 +215,8 @@ load_NTOT_species <- function(region, inputdata, project){
                                    Tort_2016_NTOT, Tort_2018_NTOT %>% dplyr::mutate(YEAR = 2017),
                                    Tort_2018_NTOT, Tort_2018_NTOT %>% dplyr::mutate(YEAR = 2019),
                                    Tort_2020_NTOT, Tort_2020_NTOT %>% dplyr::mutate(YEAR = 2021),
-                                   Tort_2022_NTOT) %>%
+                                   Tort_2022_NTOT, Tort_2024_NTOT%>% dplyr::mutate(YEAR = 2023),
+                                   Tort_2024_NTOT) %>%
         dplyr::mutate(REGION = "Tortugas",
                       ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " "))
 
@@ -263,7 +268,7 @@ load_NTOT_species <- function(region, inputdata, project){
       sum_NTOT()
 
     # Use a loop to create a unique lists for each year of strata sampled
-   # ntot <- calc_ntot(tmp = tmp, spp = spp, Years = Years, NTOT_all = NTOT_all)
+   `# ntot <- calc_ntot(tmp = tmp, spp = spp, Years = Years, NTOT_all = NTOT_all)
 
     ntot <- calc_ntot(tmp, spp, Years, NTOT_all) %>% dplyr::mutate(PROT = as.factor(PROT))
 

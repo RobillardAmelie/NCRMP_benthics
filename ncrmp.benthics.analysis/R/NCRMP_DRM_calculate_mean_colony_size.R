@@ -21,7 +21,7 @@
 #
 
 # NCRMP Caribbean Benthic analytics team: Groves, Viehman, Williams, Sturm
-# Last update: Feb 2025
+# Last update: Jun 2025
 
 
 ##############################################################################################################################
@@ -55,8 +55,7 @@
 
 NCRMP_DRM_calculate_mean_colony_size <- function(project = "NULL", region = "NULL", species_filter = "NULL") {
   
-  
-  # Load data and unpack list
+  #### Load data and unpack list   #### 
   demo_data <- load_NCRMP_DRM_demo_data(project = project, region = region, species_filter = species_filter)
   list2env(demo_data, envir = environment())
   
@@ -71,7 +70,7 @@ NCRMP_DRM_calculate_mean_colony_size <- function(project = "NULL", region = "NUL
         SUB_REGION_NAME != "Marquesas",
         SUB_REGION_NAME != "Marquesas-Tortugas Trans",
         N == 1, JUV == 0, total_mort < 100)
-    
+
     return(data)
   }
   
@@ -81,7 +80,6 @@ NCRMP_DRM_calculate_mean_colony_size <- function(project = "NULL", region = "NUL
         dplyr::mutate(size_2d = ((MAX_DIAMETER*PERP_DIAMETER)/2)-(((MAX_DIAMETER*PERP_DIAMETER)/2)*(OLD_MORT+RECENT_MORT)/100),
                       # equation for surface area of half of an ellipsoid
                       size_3d = (4*pi*(((((MAX_DIAMETER/2)*(PERP_DIAMETER/2)) + ((MAX_DIAMETER/2)*(HEIGHT/2)) + ((MAX_DIAMETER/2*(HEIGHT/2))))/3)^1/p)/2) - ((4*pi*(((((MAX_DIAMETER/2)*(PERP_DIAMETER/2)) + ((MAX_DIAMETER/2)*(HEIGHT/2)) + ((MAX_DIAMETER/2*(HEIGHT/2))))/3)^1/p)/2)*(OLD_MORT+RECENT_MORT)/100)) %>%
-
     return(data)
   }
   
@@ -132,7 +130,7 @@ NCRMP_DRM_calculate_mean_colony_size <- function(project = "NULL", region = "NUL
       (project == "NCRMP" && region == "SEFCRI") || 
       (project == "NCRMP" && region == "Tortugas")) {
   
-    ####1 stage data####
+    #### Size 1 stage ####
     size_species_1stage <- dat_1stage %>%
       clean_data() %>%
       calculate_sizes_with_mort() %>%
@@ -158,7 +156,7 @@ NCRMP_DRM_calculate_mean_colony_size <- function(project = "NULL", region = "NUL
       
       dplyr::ungroup()
 
-    ####2 stage data####
+    #### Size 2 stage ####
     size_species_2stage <- dat_2stage %>%
       clean_data() %>%
       calculate_sizes_no_mort() %>%
@@ -206,11 +204,10 @@ NCRMP_DRM_calculate_mean_colony_size <- function(project = "NULL", region = "NUL
       dplyr::group_by(REGION, SURVEY, YEAR, SUB_REGION_NAME, ADMIN, PROT, PRIMARY_SAMPLE_UNIT, LAT_DEGREES, LON_DEGREES, STRAT, HABITAT_CD, METERS_COMPLETED) %>%
       summarize_size_1() %>%
       dplyr::ungroup()
-  
   }
-  
+
   ####Run through the weighting function####
-  weighted_demo_size <- NCRMP_make_weighted_demo_data(project, inputdata = size_site, region, datatype = "size", species_filter = species_filter)
+  weighted_demo_size <- NCRMP_make_weighted_demo_data(project, inputdata = size_site, region = region, datatype = "size", species_filter = species_filter)
   list2env(weighted_demo_size, envir = environment())
   
   weighted_demo_size_species <- NCRMP_make_weighted_demo_data(project, inputdata = size_species, region, datatype = "size_species", species_filter = species_filter)
@@ -241,7 +238,7 @@ NCRMP_DRM_calculate_mean_colony_size <- function(project = "NULL", region = "NUL
       "Domain_est" = Domain_est,
       "ntot_check_species" = ntot_check_species)
   }
-  
-  
   return(output)
 }
+
+

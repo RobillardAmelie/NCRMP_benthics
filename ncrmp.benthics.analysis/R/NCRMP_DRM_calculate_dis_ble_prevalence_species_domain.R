@@ -45,8 +45,9 @@
 #'
 #'
 #'
-NCRMP_DRM_calculate_dis_ble_prevalence_species_domain <- function(project, region){
+#'
 
+NCRMP_DRM_calculate_dis_ble_prevalence_species_domain <- function(project, region){
 
   ####species recode function####
   species_recode <- function(data) {
@@ -58,26 +59,21 @@ NCRMP_DRM_calculate_dis_ble_prevalence_species_domain <- function(project, regio
                                                "ORB ANCX"="ORB SPE."))
   }
 
-
   ####get datasets for each region and project ####
   dat <- switch(region,
                 "FLK" = switch(project,
-                               "NCRMP" = NCRMP_FLK_2014_22_dis_ble_prev_species,
+                               "NCRMP" = NCRMP_FLK_2014_24_dis_ble_prev_species,
                                "MIR" = MIR_2022_dis_ble_prev_species_DUMMY,
-                               "NCRMP_DRM" = NCRMP_DRM_FLK_2014_22_dis_ble_prev_species,
-                               stop("Unknown project for FLK")
-                ),
+                               "NCRMP_DRM" = NCRMP_DRM_FLK_2014_24_dis_ble_prev_species,
+                               stop("Unknown project for FLK")),
                 "Tortugas" = switch(project,
-                                    "NCRMP" = NCRMP_Tort_2014_22_dis_ble_prev_species,
-                                    "NCRMP_DRM" = NCRMP_DRM_Tort_2014_22_dis_ble_prev_species,
-                                    stop("Unknown project for Tortugas")
-
-                ),
+                                    "NCRMP" = NCRMP_Tort_2014_24_dis_ble_prev_species,
+                                    "NCRMP_DRM" = NCRMP_DRM_Tort_2014_24_dis_ble_prev_species,
+                                    stop("Unknown project for Tortugas")),
                 "SEFCRI" = switch(project,
-                                  "NCRMP_DRM" = NCRMP_DRM_SEFCRI_2014_22_dis_ble_prev_species,
-                                  "NCRMP" = NCRMP_SEFCRI_2014_22_dis_ble_prev_species,
-                                  stop("Unknown project for SEFCRI")
-                ),
+                                  "NCRMP_DRM" = NCRMP_DRM_SEFCRI_2014_24_dis_ble_prev_species,
+                                  "NCRMP" = NCRMP_SEFCRI_2014_24_dis_ble_prev_species,
+                                  stop("Unknown project for SEFCRI")),
                 "PRICO" = NCRMP_PRICO_2014_23_dis_ble_prev_species,
                 "STTSTJ" = NCRMP_STTSTJ_2013_23_dis_ble_prev_species,
                 "STX" = NCRMP_STX_2015_23_dis_ble_prev_species,
