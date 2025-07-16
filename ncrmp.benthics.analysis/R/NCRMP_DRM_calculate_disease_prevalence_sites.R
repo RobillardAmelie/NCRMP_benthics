@@ -53,7 +53,6 @@ NCRMP_DRM_calculate_disease_prevalence_sites <- function(project, region, specie
   tmp <- load_NCRMP_DRM_demo_data(project = project, region = region,species_filter = species_filter)
   list2env(tmp, envir = environment())
 
-  
   ####Helper Function: ensure correct disease coding ####
   code_disease <- function(data){
     data %>% mutate(DISEASE = case_when(
@@ -72,7 +71,6 @@ NCRMP_DRM_calculate_disease_prevalence_sites <- function(project, region, specie
                     LON_DEGREES = sprintf("%0.4f", LON_DEGREES))
   }
 
-  
   ####Helper Function: process data ####
   process_data <- function(data){
     data %>%
@@ -121,15 +119,15 @@ NCRMP_DRM_calculate_disease_prevalence_sites <- function(project, region, specie
       dplyr::group_by(SURVEY, REGION, YEAR, SUB_REGION_NAME, PRIMARY_SAMPLE_UNIT, LAT_DEGREES, LON_DEGREES, STRAT, HABITAT_CD, PROT) %>%
       summarize_disease_bleaching()
   }
-
+  #### Helper function to summarise strata level bleach/disease####
   sum_strata <- function(data){
-    data %>%
+    data %>% 
       dplyr::group_by(REGION, YEAR, ANALYSIS_STRATUM) %>%
       dplyr::summarise(dis_sites = sum(dis_present),
                        ble_sites = sum(ble_present),
                        total_sites = length(unique(PRIMARY_SAMPLE_UNIT)))
   }
-
+  #### Helper function to summarise site level bleach/disease####
   sum_sites <- function(data) {
     data %>%
       dplyr::group_by(REGION, YEAR) %>%

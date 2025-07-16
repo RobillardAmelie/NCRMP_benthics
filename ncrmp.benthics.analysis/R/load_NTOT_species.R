@@ -268,7 +268,7 @@ load_NTOT_species <- function(region, inputdata, project){
       sum_NTOT()
 
     # Use a loop to create a unique lists for each year of strata sampled
-   # ntot <- calc_ntot(tmp = tmp, spp = spp, Years = Years, NTOT_all = NTOT_all)
+   `# ntot <- calc_ntot(tmp = tmp, spp = spp, Years = Years, NTOT_all = NTOT_all)
 
     ntot <- calc_ntot(tmp, spp, Years, NTOT_all) %>% dplyr::mutate(PROT = as.factor(PROT))
 

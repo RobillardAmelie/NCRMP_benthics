@@ -54,7 +54,7 @@ NCRMP_calculate_invert_density <- function(region, project = "NULL") {
     dat_1stage <- dplyr::bind_rows(SEFCRI_2016_inverts_ESAcorals, SEFCRI_2018_inverts_ESAcorals, SEFCRI_2020_inverts_ESAcorals %>% dplyr::mutate(YEAR = 2020), SEFCRI_2022_inverts_ESAcorals, SEFCRI_2024_inverts_ESAcorals)
   }
 
-  # FLK
+  #### Clean up  FLK ####
   if(region == "FLK"){
     if(project == "NCRMP" || project == "NULL"){
 
@@ -86,7 +86,7 @@ NCRMP_calculate_invert_density <- function(region, project = "NULL") {
     }
   } #end florida regions
 
-  # Tortugas
+  #### Clean up  Tortugas ####
   if(region == "Tortugas"){
 
     one_stage <- list(TortugasMarq_2014_inverts_ESAcorals,
@@ -97,14 +97,13 @@ NCRMP_calculate_invert_density <- function(region, project = "NULL") {
                       Tortugas_2024_inverts_ESAcorals)
 
     dat_2stage <- Tortugas_2018_inverts_ESAcorals
-
     dat_1stage <- dplyr::bind_rows(one_stage)
 
   } #end tortugas
 
-  # St. Thomas & St. John
+  #### Clean up   St. Thomas & St. John ####
   if(region == "STTSTJ"){
-
+    #make a list of the datasets filtered to only st thomas st john
     datasets <- list(USVI_2013_inverts_ESAcorals %>% filter(REGION == "STTSTJ"),
                      USVI_2015_inverts_ESAcorals %>% filter(!is.na(DIADEMA_NUM))%>% filter(REGION == "STTSTJ"),
                      USVI_2017_inverts_ESAcorals%>% filter(REGION == "STTSTJ"),
@@ -117,9 +116,9 @@ NCRMP_calculate_invert_density <- function(region, project = "NULL") {
       dplyr::mutate(DIADEMA_NUM = as.numeric(DIADEMA_NUM))
   } #end sttstj
 
-  # St. Croix
+  #### Clean up   St. Croix ####
   if(region == "STX"){
-
+  # make a list of the datasets only including region = stx
     datasets <- list(
       USVI_2015_inverts_ESAcorals %>% filter(DIADEMA_NUM != "N/A", STRAT != "BDRK_DEEP", REGION == "STX"),
       USVI_2017_inverts_ESAcorals %>% filter(REGION == "STX"),
@@ -127,11 +126,10 @@ NCRMP_calculate_invert_density <- function(region, project = "NULL") {
       USVI_2021_inverts_ESAcorals %>% filter(REGION == "STX"),
       USVI_2023_inverts_ESAcorals %>% filter(REGION == "STX")
     )
-
     dat_1stage <-dplyr::bind_rows(datasets)
   } #end stx
 
-  # Puerto Rico
+  #### Clean up   Puerto Rico ####
   if(region == "PRICO"){
 
     datasets <- list(PRICO_2014_inverts_ESAcorals,
@@ -145,17 +143,20 @@ NCRMP_calculate_invert_density <- function(region, project = "NULL") {
       dplyr::mutate(ANALYSIS_STRATUM = STRAT)
   } #end PRICO
 
-  ## Flower Garden Banks National Marine Sanctuary (FGB)
+  #### Clean up   FGB ####
   if(region == "FGB"){
-
+    
+    #helper function for cleaning up FGB data
     mutate_FGB <- function(data){
       data %>%dplyr::mutate(SURVEY = "NCRMP",
                             ANALYSIS_STRATUM = "FGBNMS",
                             STRAT = "FGBNMS",
                             REGION = "FGB",
                             MAPGRID_NR = as.factor(MAPGRID_NR))
+      
     }
-
+     #list the data sets only including flower gardens
+    #this calls the  helper function that cleans and mutates the datasets
     datasets <- list(mutate_FGB(FGBNMS_2013_inverts_ESAcorals),
                      mutate_FGB(FGBNMS_2015_inverts_ESAcorals),
                      mutate_FGB(FGBNMS_2018_inverts_ESAcorals),
@@ -189,6 +190,8 @@ NCRMP_calculate_invert_density <- function(region, project = "NULL") {
                                                            TRUE ~ DIADEMA_NUM/(25 * 2) ))
   }
 
+  ####calculate invert statistics ####
+  #### Flordia Regions ####
   if(project == "NCRMP" && region == "SEFCRI" || project == "NCRMP" && region == "FLK" ||  project == "NCRMP" && region == "Tortugas") {
 
     dat1_1stage <- dat_1stage %>%
@@ -220,6 +223,7 @@ NCRMP_calculate_invert_density <- function(region, project = "NULL") {
     
     diadema_density_site <- dplyr::bind_rows(dat1_1stage, dat1_2stage)
 
+    #### Non Florida Regions ####
   } else {
     diadema_density_site <- dat_1stage %>%
       filter(DIADEMA_NUM != "NA") %>%
@@ -233,7 +237,7 @@ NCRMP_calculate_invert_density <- function(region, project = "NULL") {
     
   }
 
-  # call function for weighting
+  #### call function for weighting   #### 
   tmp <- NCRMP_make_weighted_invert_density_data(inputdata = diadema_density_site, region, project)
   list2env(tmp, envir = .GlobalEnv)
   

@@ -46,7 +46,6 @@
 #'
 
 
-# Specify AR dataset for Inverts/ESA corals as function inputs
 NCRMP_calculate_ESA_corals_PresAbs <- function() {
   
   ####Change analysis strat Helper Function####

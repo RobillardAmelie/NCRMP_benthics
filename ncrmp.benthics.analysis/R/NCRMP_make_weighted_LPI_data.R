@@ -52,12 +52,7 @@
 #'
 
 NCRMP_make_weighted_LPI_data <- function(inputdata, region, project = "NULL"){
-  
-  #### Define regional groups  ####
-  FL <- c("SEFCRI", "FLK", "Tortugas")
-  FGB <- "FGB"
-  Carib <- c("STTSTJ", "STX", "PRICO")
-  
+
   #### load ntot   #### 
   ntot <- load_NTOT(region = region,inputdata = inputdata,project = project)
   
@@ -123,11 +118,11 @@ NCRMP_make_weighted_LPI_data <- function(inputdata, region, project = "NULL"){
   
   #####Process Cover Data (region dependent)####
 
-  if (region %in% FL) {
+  if (region %in% c("SEFCRI", "FLK", "Tortugas")) {
     cover_est <- process_cover_data(inputdata, region_is_FL = TRUE)
   }
   #Process cover data for FGB and Caribbean regions
-  if (region %in% FGB | region %in% Carib) {
+  if (region == "FGB" | region %in% c("STTSTJ", "STX", "PRICO")) {
     cover_est <- process_cover_data(inputdata, region_is_FL = FALSE)
   }
 

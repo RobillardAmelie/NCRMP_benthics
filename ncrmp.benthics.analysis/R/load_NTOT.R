@@ -41,10 +41,6 @@
 #' @importFrom magrittr "%>%"
 #' @export
 #'
-#'
-#'
-#'
-
 
 load_NTOT <- function(region, inputdata, project){
   
@@ -141,6 +137,8 @@ load_NTOT <- function(region, inputdata, project){
       #...along with .x which represents the current year being processed
       ntot <- map_dfr(Years, ~filter_by_year(NTOT_all, tmp, .x))%>%
         mutate(PROT = as.factor(PROT))
+      
+      view(ntot)
   }
   
   #### FLK ####
@@ -241,6 +239,8 @@ load_NTOT <- function(region, inputdata, project){
         dplyr::mutate(YEAR = 2022, ngrtot = sum(NTOT))
       
       ntot <- ntot22
+      
+
     }
   }
   
@@ -289,6 +289,7 @@ load_NTOT <- function(region, inputdata, project){
         dplyr::mutate(ngrtot = sum(NTOT))
       
       ntot <- dplyr::bind_rows(ntot14, ntot16, ntot18, ntot20, ntot22, ntot24)
+
     }
     
     
@@ -456,7 +457,6 @@ load_NTOT <- function(region, inputdata, project){
   ntot <- ntot %>%
     dplyr::mutate(wh = NTOT/ngrtot) %>%
     dplyr::mutate(PROT = as.factor(PROT))
-  
   ####Export####
   return(ntot)
 }

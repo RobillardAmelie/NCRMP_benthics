@@ -200,7 +200,7 @@ NCRMP_calculate_cover <- function(region, project = "NCRMP"){
   if(project == "NCRMP" & region %in% c("FLK", "SEFCRI", "Tortugas")){
     allsites <- unique(cover_group_site_averaged[, c("YEAR", "REGION", "SUB_REGION_NAME", 'ADMIN', "PRIMARY_SAMPLE_UNIT", "MONTH", "DAY",
                                 "LAT_DEGREES", "LON_DEGREES", "ANALYSIS_STRATUM", "STRAT", "HABITAT_CD", "PROT")])
-  }else{
+  } else{
     allsites <- unique(cover_group_site_averaged[, c("YEAR", "REGION", "SUB_REGION_NAME", 'ADMIN', "PRIMARY_SAMPLE_UNIT",
                                 "LAT_DEGREES", "LON_DEGREES", "ANALYSIS_STRATUM", "STRAT", "HABITAT_CD", "PROT")])
   }
@@ -251,4 +251,5 @@ NCRMP_calculate_cover <- function(region, project = "NCRMP"){
   )
   return(output)
 }
+
 

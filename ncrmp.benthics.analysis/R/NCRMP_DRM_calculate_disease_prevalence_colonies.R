@@ -59,7 +59,6 @@ NCRMP_DRM_calculate_disease_prevalence_colonies <- function(project, region, spe
   list2env(tmp, envir = environment())
 
   ####Helper Function: ensure correct disease coding ####
-  
   code_disease <- function(data){
     data %>% mutate(DISEASE = case_when(
           DISEASE == "absent" ~ "A",
