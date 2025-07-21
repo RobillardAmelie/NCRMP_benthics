@@ -42,44 +42,45 @@
 #' @export
 #'
 
+
 load_NTOT <- function(region, inputdata, project){
-  
+
   make_analysis_stratum <- function(data){
     data %>%
       dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " ")) %>%
       mutate(REGION = region)
   }
-  
+
   ####Process NTOT####
   process_ntot <- function(data, year, strat_mapping = NULL){
     data <- data %>%
       make_analysis_stratum() %>%
       mutate(ngrtot = sum(NTOT))
   }
-  
+
   ####Filter By Year####
   #This replaces the original for loop
   filter_by_year <- function(NTOT_all, data, year) {
-    
+
     #filter data to only include the inputed year
     strata_to_keep <- data %>%
       filter(YEAR == year) %>%
       #extract values from analysis stratum and get non redundant values
       pull(ANALYSIS_STRATUM) %>%
       unique()
-    
-    
+
+
     #do the filtering and calculate ngrtot
     NTOT_all %>%
       filter(YEAR == year) %>%
       filter(ANALYSIS_STRATUM %in% strata_to_keep) %>%
       mutate(ngrtot = sum(NTOT))
   }
-  
-  
+
+
   #### SEFCRI ####
-  
-  #Helper function to process 2016 and 2018 sefcri 
+
+  #Helper function to process 2016 and 2018 sefcri
   SEFCRI_16_18_process <- function(data){
     data <- data %>%
       dplyr::mutate(STRAT = dplyr::case_when(STRAT == "PTSH2"~"NEAR1",
@@ -90,15 +91,15 @@ load_NTOT <- function(region, inputdata, project){
       dplyr::ungroup() %>%
       dplyr::filter(STRAT != "RGDP1" & STRAT != "RGDP0")
   }
-  
+
   #Helper function to reduce redundant code
   filter_SEFCRI_strats <- function(data){
     data %>% dplyr::filter(!STRAT %in% c("RGDP1", "RGDP0")) %>% process_ntot()
   }
-  
-  
+
+
   if(region == "SEFCRI" & project %in% c("NCRMP", "NULL")) {
-      
+
       ntot <- bind_rows(
         SEFL_2014_NTOT %>% dplyr::filter(STRAT %in% c("MIDR1", "MIDR0")) %>% process_ntot(),
         SEFL_2016_NTOT %>% SEFCRI_16_18_process() %>% process_ntot(),
@@ -108,41 +109,41 @@ load_NTOT <- function(region, inputdata, project){
         SEFL_2024_NTOT %>% filter_SEFCRI_strats()
       )
     }
-    
+
   if(region == "SEFCRI" & project == "NCRMP_DRM") {
-      
+
       # Filter NTOT to only strata sampled that year
       # Make a dataframe of just the YEAR and STRAT
       tmp <- inputdata %>%
         make_analysis_stratum() %>%
         dplyr::group_by(YEAR, ANALYSIS_STRATUM) %>%
         dplyr::summarise(N = length(ANALYSIS_STRATUM))
-      
+
       # Make a list of all the years
       Years <- sort(unique(tmp$YEAR))
-      
+
       # create a data frame of the full NTOTs for FLK
       NTOT_all <- dplyr::bind_rows(SEFL_2014_NTOT, SEFL_2014_NTOT %>% dplyr::mutate(YEAR = 2015),
                                    SEFL_2016_NTOT, SEFL_2018_NTOT %>% dplyr::mutate(YEAR = 2017),
                                    SEFL_2018_NTOT, SEFL_2018_NTOT %>% dplyr::mutate(YEAR = 2019),
                                    SEFL_2020_NTOT, SEFL_2020_NTOT %>% dplyr::mutate(YEAR = 2021),
-                                   SEFL_2022_NTOT, SEFL_2024_NTOT%>% dplyr::mutate(YEAR = 2023), 
+                                   SEFL_2022_NTOT, SEFL_2024_NTOT%>% dplyr::mutate(YEAR = 2023),
                                    SEFL_2024_NTOT)  %>%
         make_analysis_stratum()
-      
+
       #this uses the map_dfr function from the purrr package (this can be found in tidyverse)
-      #can be used to apply a function (in this case the helper function filter by year) to every element of a list 
+      #can be used to apply a function (in this case the helper function filter by year) to every element of a list
       #in this case the list is Years
-      #so its calling filter by year with the NTOT_alll and tmp arguments, 
+      #so its calling filter by year with the NTOT_alll and tmp arguments,
       #...along with .x which represents the current year being processed
       ntot <- map_dfr(Years, ~filter_by_year(NTOT_all, tmp, .x))%>%
         mutate(PROT = as.factor(PROT))
-      
+
       view(ntot)
   }
-  
+
   #### FLK ####
-  
+
   #helper function for processing FLK ntot data
   process_FLK_NTOT <- function(data){
     data %>%
@@ -150,20 +151,20 @@ load_NTOT <- function(region, inputdata, project){
       dplyr::group_by(REGION, YEAR, PROT, STRAT, GRID_SIZE) %>%
       dplyr::summarise(NTOT = sum(NTOT), .groups = "drop")
   }
-  
+
   if(region == "FLK") {
     if(project == "NCRMP" || project == "NULL"){
-      
+
       # Use a loop to create a unique lists for each year of strata sampled
       # Filter NTOT to only strata sampled that year (previously done manually)
       tmp <- inputdata %>%
         make_analysis_stratum() %>%
         dplyr::group_by(YEAR, ANALYSIS_STRATUM) %>%
         dplyr::summarise(N = length(ANALYSIS_STRATUM), .groups = "keep")
-      
+
       # Make a list of all the years
       Years <- sort(unique(tmp$YEAR))
-      
+
       ### UPDATE IN DEC. 2023!!
       # PROT is re-coded here to 0 for ALL strata as fish and benthics met 12/19/23
       # to determine that it is not appropriate to keep PROT in the analysis strat
@@ -177,38 +178,38 @@ load_NTOT <- function(region, inputdata, project){
         process_FLK_NTOT(FLK_2022_NTOT),
         process_FLK_NTOT(FLK_2024_NTOT)) %>%
         make_analysis_stratum()
-      
+
       #see above for explanation of what this is doing
       ntot <- map_dfr(Years, ~filter_by_year(NTOT_all, tmp, .x))%>%
         mutate(PROT = as.factor(PROT))
     }
-    
-    
+
+
     if(project == "NCRMP_DRM") {
-      
+
       # Filter NTOT to only strata sampled that year
       # Make a dataframe of just the YEAR and STRAT
       tmp <- inputdata %>%
         make_analysis_stratum() %>%
         dplyr::group_by(YEAR, ANALYSIS_STRATUM) %>%
         dplyr::summarise(N = length(ANALYSIS_STRATUM), .groups = "keep")
-      
+
       # Make a list of all the year
       Years <- sort(unique(tmp$YEAR))
-      
+
       FLK_2014_NTOT <- process_FLK_NTOT(FLK_2014_NTOT)
       FLK_2016_NTOT <- process_FLK_NTOT(FLK_2016_NTOT)
       FLK_2018_NTOT <- process_FLK_NTOT(FLK_2018_NTOT)
       FLK_2020_NTOT <- process_FLK_NTOT(FLK_2020_NTOT)
       FLK_2022_NTOT <- process_FLK_NTOT(FLK_2022_NTOT)
       FLK_2024_NTOT <- process_FLK_NTOT(FLK_2024_NTOT)
-      
+
       ### UPDATE IN DEC. 2023!!
       # PROT is re-coded here to 0 for ALL strata as fish and benthics met 12/19/23
       # to determine that it is not appropriate to keep PROT in the analysis strat
       # in FLK because the data aren't allocated that way
       # NTOTs must be re-calculated with PROT=0 here
-      
+
       NTOT_all <- dplyr::bind_rows(FLK_2014_NTOT, FLK_2016_NTOT %>% dplyr::mutate(YEAR = 2015),
                                    FLK_2016_NTOT, FLK_2018_NTOT %>% dplyr::mutate(YEAR = 2017),
                                    FLK_2018_NTOT, FLK_2018_NTOT %>% dplyr::mutate(YEAR = 2019),
@@ -216,16 +217,16 @@ load_NTOT <- function(region, inputdata, project){
                                    FLK_2022_NTOT, FLK_2024_NTOT %>% dplyr::mutate(YEAR = 2023),
                                    FLK_2024_NTOT) %>%
         make_analysis_stratum()
-      
+
       #see above for explanation of what this is doing
       ntot <- map_dfr(Years, ~filter_by_year(NTOT_all, tmp, .x)) %>%
         mutate(PROT = as.factor(PROT))
-      
+
     }
-    
+
     #### MIR ####
     if(project == "MIR"){
-      
+
       ntot22 <- FLK_MIR_2022_NTOT %>%
         dplyr::ungroup() %>%
         # Remove strata not sampled - this will be unique to each year and need to be updated. See Tortugas for examples.
@@ -237,35 +238,38 @@ load_NTOT <- function(region, inputdata, project){
                       ANALYSIS_STRATUM != "CS14 / PROT = 1",
                       ANALYSIS_STRATUM != "CS15 / PROT = 1") %>%
         dplyr::mutate(YEAR = 2022, ngrtot = sum(NTOT))
-      
+
       ntot <- ntot22
-      
+
 
     }
   }
-  
+
+
+
+
   #### Tortugas ####
   if(region == "Tortugas") {
     if(project == "NCRMP" || project == "NULL") {
-    
-      
+
+
       ntot14 <- Tort_2014_NTOT %>%
         dplyr::filter(STRAT != "SPGR_LR") %>% # Not sampled in 2014
         make_analysis_stratum() %>%
         dplyr::mutate( ngrtot = sum(NTOT))
-      
+
       ntot16 <- Tort_2016_NTOT %>%
         make_analysis_stratum() %>%
         dplyr::filter(ANALYSIS_STRATUM != "ISOL_LR / PROT = 0") %>% #Not sampled
         dplyr::mutate(ngrtot = sum(NTOT))
-      
+
       ntot18 <- Tort_2018_NTOT %>%
         dplyr::filter(STRAT != "SPGR_LR") %>% # Not sampled in 2018
         make_analysis_stratum()%>%
         dplyr::filter(ANALYSIS_STRATUM != "ISOL_LR / PROT = 0",
                       ANALYSIS_STRATUM != "ISOL_LR / PROT = 1") %>% # Not sampled in 2018
         dplyr::mutate(ngrtot = sum(NTOT))
-      
+
       ntot20 <- Tort_2020_NTOT %>%
         make_analysis_stratum() %>%
         dplyr::mutate(PROT = as.integer(PROT)) %>%
@@ -274,7 +278,7 @@ load_NTOT <- function(region, inputdata, project){
                       ANALYSIS_STRATUM != "T03 / PROT = 2",
                       ANALYSIS_STRATUM != "T06 / PROT = 2") %>% #Not sampled
         dplyr::mutate(ngrtot = sum(NTOT))
-      
+
       ntot22 <- Tort_2022_NTOT %>%
         make_analysis_stratum() %>%
         dplyr::filter(PROT != 0) %>%
@@ -282,26 +286,26 @@ load_NTOT <- function(region, inputdata, project){
                       ANALYSIS_STRATUM != "T09 / PROT = 1",
                       ANALYSIS_STRATUM != "T04 / PROT = 2") %>% #Not sampled
         dplyr::mutate(ngrtot = sum(NTOT))
-      
-      
+
+
       ntot24 <- Tort_2024_NTOT %>%
         make_analysis_stratum() %>%
         dplyr::mutate(ngrtot = sum(NTOT))
-      
+
       ntot <- dplyr::bind_rows(ntot14, ntot16, ntot18, ntot20, ntot22, ntot24)
 
     }
-    
-    
+
+
     if(project == "NCRMP_DRM") {
-      
+
       # Filter NTOT to only strata sampled that year
       # Make a dataframe of just the YEAR and STRAT
       tmp <- inputdata %>%
         dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " ")) %>%
         dplyr::group_by(YEAR, ANALYSIS_STRATUM) %>%
         dplyr::summarise(N = length(ANALYSIS_STRATUM))
-      
+
       # Make a list of all the years
       Years <- sort(unique(tmp$YEAR))
       # add an empty data frame to populate with the filtered NTOTs
@@ -314,18 +318,18 @@ load_NTOT <- function(region, inputdata, project){
                                    Tort_2022_NTOT, Tort_2024_NTOT %>% dplyr::mutate(YEAR = 2023),
                                    Tort_2024_NTOT) %>%
         make_analysis_stratum()
-      
-      
+
+
       #see above for explanation of what this is doing
       ntot <- map_dfr(Years, ~filter_by_year(NTOT_all, tmp, .x))%>%
         mutate(PROT = as.factor(PROT))
-      
-      
+
+
     }
   }
-  
+
   #### USVI Function ####
-  
+
   process_USVI_NTOT <- function(data, year){
     data %>%
       dplyr::group_by(REGION, YEAR, STRAT, HABITAT_CD, DEPTH_STRAT) %>%
@@ -336,40 +340,40 @@ load_NTOT <- function(region, inputdata, project){
                     PROT = NA_character_,
                     ngrtot = sum(NTOT)) %>%
       dplyr::ungroup()
-    
+
   }
-  
-  
+
+
   #### STTSTJ ####
   if(region == "STTSTJ"){
-    
+
     ntot13 <- USVI_2021_NTOT %>%
       dplyr::filter(REGION == "STTSTJ",
                     STRAT != "HARD_SHLW") %>% # Hard shlw was not sampled in 2013
       process_USVI_NTOT(year = 2013)
-    
+
     ntot15 <- USVI_2021_NTOT %>%
       dplyr::filter(REGION == "STTSTJ") %>%
       process_USVI_NTOT(year = 2015)
-    
+
     ntot17 <- USVI_2021_NTOT %>%
       dplyr::filter(REGION == "STTSTJ") %>%
       process_USVI_NTOT(year = 2017)
-    
+
     ntot19 <- USVI_2021_NTOT %>%
       dplyr::filter(REGION == "STTSTJ") %>%
       process_USVI_NTOT(year = 2019)
-    
+
     ntot21 <- USVI_2021_NTOT %>%
       dplyr::filter(REGION == "STTSTJ") %>%
       process_USVI_NTOT(year = 2021)
-    
+
     ntot23 <- USVI_2023_NTOT %>%
       dplyr::filter(REGION == "STTSTJ") %>%
       process_USVI_NTOT(year = 2023)
-    
+
     ntot <- dplyr::bind_rows(ntot13, ntot15, ntot17, ntot19, ntot21, ntot23)
-    
+
   }
   #### STX ####
   if(region == "STX"){
@@ -379,35 +383,35 @@ load_NTOT <- function(region, inputdata, project){
                     STRAT != "HARD_SHLW", # Hard shlw was not sampled in 2015
                     STRAT != "HARD_DEEP") %>% # Hard deep was not sampled in 2015
       process_USVI_NTOT(year = 2015)
-    
+
     ntot17 <- USVI_2021_NTOT %>%
       dplyr::filter(REGION == "STX",
                     STRAT != "HARD_SHLW") %>%
       process_USVI_NTOT(year = 2017)
-    
+
     ntot19 <- USVI_2021_NTOT %>%
       dplyr::filter(REGION == "STX") %>%
       process_USVI_NTOT(year = 2019)
-    
+
     ntot21 <- USVI_2021_NTOT %>%
       dplyr::filter(REGION == "STX") %>%
       dplyr::filter(!(STRAT == "BDRK_SHLW" | STRAT == "BDRK_DEEP")) %>% # 2021 we didnt sample BDRK shallow OR deep
       process_USVI_NTOT(year = 2021)
-    
+
     ntot23 <- USVI_2023_NTOT %>%
       dplyr::filter(REGION == "STX") %>%
       process_USVI_NTOT(year = 2023)
-    
+
     ntot <- dplyr::bind_rows(ntot15, ntot17, ntot19, ntot21, ntot23)
-    
+
   }
-  
+
   #### PRICO ####
   PRICO_data_clean <- function(data, year){
-    
+
     #if 2023, filter out HARD habitat code
     if (year == 2023) {data <- dplyr::filter(data, HABITAT_CD != "HARD")}
-    
+
     data <- data %>%
       dplyr::group_by(REGION, YEAR, STRAT, HABITAT_CD, DEPTH_STRAT) %>%
       dplyr::summarise(NTOT = sum(NTOT)) %>%
@@ -417,26 +421,26 @@ load_NTOT <- function(region, inputdata, project){
                     PROT = NA_character_,
                     ngrtot = sum(NTOT))
   }
-  
-  
+
+
   if(region == "PRICO"){
-    
+
     ntot14 <- PRICO_2023_NTOT %>%
       dplyr::filter(STRAT != "HARD_DEEP", # Hard shlw was not sampled in 2014
                     STRAT != "HARD_SHLW") %>% # Hard deep was not sampled in 2014
       PRICO_data_clean(year = 2014)
-    
-    #list of all other years besides 2014 
+
+    #list of all other years besides 2014
     years <- c(2014,2019,2021, 2023)
-    
+
     other_years <- map_dfr(years, ~PRICO_data_clean(PRICO_2023_NTOT, .x))
-    
+
     ntot <- dplyr::bind_rows(ntot14, other_years)
   }
-  
+
   #### FGB ####
   if(region == "FGB"){
-    
+
     FGB_data_clean <- function(data, year){
       data <- data %>%
         dplyr::mutate(ANALYSIS_STRATUM = "FGBNMS",
@@ -447,16 +451,18 @@ load_NTOT <- function(region, inputdata, project){
                          ngrtot = sum(NTOT)) %>%
         dplyr::ungroup()
     }
-    
+
     years <- c(2013, 2015, 2018, 2022, 2024)
-    
+
     ntot <- map_dfr(years, ~FGB_data_clean(FGBNMS_2024_NTOT, .x))
   }
-  
-  
+
+
   ntot <- ntot %>%
     dplyr::mutate(wh = NTOT/ngrtot) %>%
     dplyr::mutate(PROT = as.factor(PROT))
   ####Export####
   return(ntot)
+  
 }
+
